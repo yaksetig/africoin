@@ -19,7 +19,7 @@ const Index = () => {
         <main className="max-w-4xl mx-auto text-center space-y-8">
           <div className="space-y-4">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-              Mint NFTs from CSV Data
+              Issue New Carbon Credits
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Simply upload your CSV file with serial numbers and geographic coordinates, and we'll mint unique NFTs for each row.
