@@ -272,27 +272,8 @@ const Index = () => {
             <span className="text-primary">Afri</span>
             <span className="text-secondary">coin</span>
           </h1>
-          {/* WalletConnect component, passing props for connection status */}
-          <WalletConnect
-            onConnect={(address: string) => {
-              setWalletConnected(true);
-              setConnectedAddress(address);
-              toast({
-                title: "Wallet Connected",
-                description: `Connected to ${address.substring(0, 6)}...${address.slice(-4)}`,
-              });
-            }}
-            onDisconnect={() => {
-              setWalletConnected(false);
-              setConnectedAddress(null);
-              toast({
-                title: "Wallet Disconnected",
-                description: "Your wallet has been disconnected.",
-              });
-            }}
-            connected={walletConnected} // Pass the connected status
-            currentAddress={connectedAddress} // Pass the current address for display
-          />
+          {/* WalletConnect component without invalid props */}
+          <WalletConnect />
         </header>
 
         {/* Main Content */}
@@ -352,8 +333,8 @@ const Index = () => {
                   Support for CSV and Excel files (.csv, .xlsx, .xls)
                 </p>
               </div>
-              {/* FileUpload component, passing the handleFileUpload callback */}
-              <FileUpload onFileUpload={handleFileUpload} />
+              {/* FileUpload component without invalid props */}
+              <FileUpload />
             </div>
           )}
 
