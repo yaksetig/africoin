@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, FileText, Coins, CheckCircle, Trash2, Download } from 'lucide-react';
 import * as XLSX from 'xlsx'; // For Excel parsing
-import { WalletConnect } from "@/components/WalletConnect"; 
-import { FileUpload } from "@/components/FileUpload"; 
-import { useToast } from "@/hooks/use-toast"; 
+import { WalletConnect } from "@/components/WalletConnect"; // Assuming this is your component path
+import { FileUpload } from "@/components/FileUpload"; // Assuming this is your component path
+import { useToast } from "@/hooks/use-toast"; // Assuming useToast is in @/hooks/use-toast
 
 const Index = () => {
+  // State variables for the multi-step process
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
@@ -156,7 +157,6 @@ const Index = () => {
     setCurrentStep(3); // Move to the Minting NFTs step
 
     try {
-      //IMPORTANT: CALL FLASK OR WEB3 CONTRACT HERE
       // Extract serial numbers from selected data.
       // Assuming 'serialNumber' is a key in your CSV/Excel data.
       // Adjust 'serialNumber' to the actual column header for your serial numbers.
@@ -180,6 +180,7 @@ const Index = () => {
         toast({
           title: "NFTs minted successfully",
           description: `${selectedItems.size} NFTs have been minted on chain!`,
+          variant: "success",
         });
       } else {
         setMintingStatus('failed');
@@ -217,7 +218,6 @@ const Index = () => {
     setCurrentStep(4); // Move to the Create Collection step
 
     try {
-      // IMPORTANT
       // TODO: Replace with actual collection creation/deployment logic
       // This would typically involve deploying a new smart contract or
       // interacting with a factory contract on the blockchain.
@@ -228,6 +228,7 @@ const Index = () => {
       toast({
         title: "Collection created successfully",
         description: "Your NFTs are now part of a collection.",
+        variant: "success",
       });
     } catch (error) {
       console.error('Error creating collection:', error);
@@ -250,7 +251,6 @@ const Index = () => {
     setMintingStatus('idle');
     setCollectionStatus('idle');
     setSelectedItems(new Set());
-    // Optionally, disconnectING wallet here if desired, or let WalletConnect manage its state
     setWalletConnected(false);
     setConnectedAddress(null);
   };
