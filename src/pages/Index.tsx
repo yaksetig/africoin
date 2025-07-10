@@ -180,7 +180,6 @@ const Index = () => {
         toast({
           title: "NFTs minted successfully",
           description: `${selectedItems.size} NFTs have been minted on chain!`,
-          variant: "success",
         });
       } else {
         setMintingStatus('failed');
@@ -228,7 +227,6 @@ const Index = () => {
       toast({
         title: "Collection created successfully",
         description: "Your NFTs are now part of a collection.",
-        variant: "success",
       });
     } catch (error) {
       console.error('Error creating collection:', error);
