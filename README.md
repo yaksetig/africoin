@@ -14,3 +14,8 @@
 
 ## How to issue NFTs (e.g., Carbon Credits)
 ### Example 1: Carbon Credits using the UI & Metamask
+
+
+### Authors
+Mario: [https://github.com/yaksetig](https://github.com/yaksetig)
+Linda: [https://github.com/lindamatmuk](https://github.com/lindamatmuk)
