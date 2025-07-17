@@ -17,6 +17,6 @@
 
 
 ### Authors
-Mario: [https://github.com/yaksetig](https://github.com/yaksetig)
+[Mario Yaksetig](https://github.com/yaksetig)
 
 [Linda Anotida Mukarakate](https://github.com/lindamatmuk)
