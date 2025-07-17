@@ -16,7 +16,7 @@
 ### Example 1: Carbon Credits using the UI & Metamask
 
 
-### Authors
+## Authors
 [Mario Yaksetig](https://github.com/yaksetig)
 
 [Linda Anotida Mukarakate](https://github.com/lindamatmuk)
