@@ -2344,11 +2344,11 @@ const Index = () => {
         }
 
         if (parsedContent.length === 0) {
-            toast({
-                title: "No Data Found",
-                description: "The file was parsed, but no rows of data were found.",
-                variant: "info",
-            });
+        toast({
+            title: "No Data Found",
+            description: "The file was parsed, but no rows of data were found.",
+            variant: "default",
+        });
             return;
         }
 
@@ -2406,12 +2406,20 @@ const Index = () => {
     });
   };
 
-  // Updated to receive provider and signer from WalletConnect
-  const handleWalletConnect = (address: string, provider: ethers.BrowserProvider, signer: ethers.JsonRpcSigner) => {
+  // Updated to only receive address, then create provider and signer
+  const handleWalletConnect = async (address: string) => {
     setWalletAddress(address);
     setIsConnected(true);
-    setEthersProvider(provider);
-    setEthersSigner(signer);
+    
+    // Create provider and signer from the connected wallet
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      setEthersProvider(provider);
+      setEthersSigner(signer);
+    } catch (error) {
+      console.error('Error creating provider/signer:', error);
+    }
     if (csvData.length > 0) {
       setCurrentStep(3); // Only move to step 3 if there's data to mint
     }
@@ -2512,7 +2520,7 @@ const Index = () => {
       toast({
         title: "Uploading Metadata to IPFS",
         description: "This may take a moment...",
-        variant: "info",
+        variant: "default",
       });
 
       const ipfsUploadResponse = await fetch(`${backendUrl}/upload_metadata_to_ipfs`, {
@@ -2538,7 +2546,7 @@ const Index = () => {
       toast({
         title: "Metadata Uploaded",
         description: `Successfully uploaded metadata for ${ipfsResult.uploadedURIs.length} items to IPFS.`,
-        variant: "success",
+        variant: "default",
       });
 
       // 3. Instantiate the contract using the constant ABI and signer from MetaMask
@@ -2596,7 +2604,7 @@ const Index = () => {
         toast({
           title: "NFTs minted successfully",
           description: `Successfully minted ${successfulMints.length} out of ${carbonCreditDataList.length} tokens!`,
-          variant: "success",
+          variant: "default",
         });
         setCurrentStep(4); // Move to collection step after minting
       }
@@ -2605,7 +2613,7 @@ const Index = () => {
         toast({
           title: "Partial Minting Success",
           description: `${failedMints.length} tokens failed to mint. Check console for details.`,
-          variant: "warning",
+          variant: "destructive",
         });
         setMintingProgress(prev => ({ ...prev, isActive: false })); // Stop progress animation
         if (successfulMints.length === 0) {
