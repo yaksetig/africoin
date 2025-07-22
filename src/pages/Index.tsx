@@ -2456,7 +2456,7 @@ const Index = () => {
 
   /**
    * Handles the minting of selected individual NFTs directly via MetaMask.
-   * Renamed from handleMintTokens for clarity, aligning with previous discussions.
+   * Renamed from handleMintTokens for clarity
    */
   const mintIndividualNFTs = async () => {
     if (!isConnected || !walletAddress || !ethersProvider || !ethersSigner) {
@@ -2495,8 +2495,7 @@ const Index = () => {
           VintageYear: row?.['VintageYear'] || row?.['Vintage Year'] || 'N/A',
           GeographicCoordinates: row?.['GeographicCoordinates'] || row?.['Geographic Coordinates'] || 'N/A',
           Description: row?.['Description'] || 'A unique carbon credit NFT.', // Add a generic description if not in CSV
-          Name: row?.['Name'] || `Carbon Credit NFT #${serialNumber}`, // Add a generic name
-          Image: "ipfs://QmYourDefaultImageHashHere" // Default image hash for IPFS metadata
+          Name: row?.['Name'] || `Carbon Credit NFT #${serialNumber}` // Add a generic name
           // Add more attributes based on your CSV/Excel columns
         };
       }).filter(item => item.serialNumber);
@@ -2576,9 +2575,8 @@ const Index = () => {
             throw new Error(`Invalid tokenId: '${serial_num_str}' is not a valid number. Token IDs must be numeric.`);
           }
 
-          // --- CHANGE HERE: Call the mintToken function without the tokenURI parameter ---
-          // Based on your latest tokenize.sol, it's `mintToken(address to, uint256 serialNumber)`
-          const tx = await contract.mintToken(walletAddress, tokenId); // Removed tokenURI parameter
+          // Based on latest tokenize.sol, it's `mintToken(address to, uint256 serialNumber)`
+          const tx = await contract.mintToken(walletAddress, tokenId); 
 
           await tx.wait(); // Wait for the transaction to be mined
 
