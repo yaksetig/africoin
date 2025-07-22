@@ -72,8 +72,7 @@
                         "outputs": [],
                         "stateMutability": "nonpayable",
                         "type": "function"
-                    }
-                ],
+                    },
                 "evm": {
                     "bytecode": {
                         "functionDebugData": {},
