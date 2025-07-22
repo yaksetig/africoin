@@ -85,7 +85,7 @@ const TOKENIZE_CONTRACT_ABI = [
 ];
 
 // Contract address (placeholder)
-const CONTRACT_ADDRESS = "0x1234567890123456789012345678901234567890";
+const CONTRACT_ADDRESS = "0x6AB61b2006a18c630d6F8C5000D15A33B77F4Ba9";
 
 interface CSVRow {
   [key: string]: string | number;
