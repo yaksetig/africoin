@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Upload, FileText, Coins, CheckCircle, Trash2, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -67,7 +68,7 @@ export default function Index() {
 
   const steps = [
     { title: 'Connect Wallet', icon: Coins },
-    { title: 'Upload File', icon: Upload },
+    { title: 'Upload CSV', icon: Upload },
     { title: 'Preview Data', icon: FileText },
     { title: 'Configure Collection', icon: CheckCircle },
     { title: 'Mint Tokens', icon: Coins }
@@ -121,14 +122,14 @@ export default function Index() {
       setUploadedData(data);
       setCurrentStep(2);
       toast({
-        title: "File Processed",
-        description: `Successfully loaded ${data.length} records.`,
+        title: "CSV File Processed",
+        description: `Successfully loaded ${data.length} records from your CSV file.`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error Processing File",
-        description: "Failed to parse the uploaded file. Please check the format.",
+        title: "Error Processing CSV File",
+        description: "Failed to parse the uploaded CSV file. Please check the format and try again.",
       });
     }
   }, [toast]);
@@ -236,11 +237,14 @@ export default function Index() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              Data Tokenization Platform
+            <h1 className="text-5xl font-bold text-primary mb-4">
+              AfriCoin
             </h1>
-            <p className="text-muted-foreground text-lg">
-              Transform your data into blockchain tokens with ease
+            <p className="text-muted-foreground text-xl">
+              Transform your CSV data into blockchain tokens with ease
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Upload your CSV files and mint them as NFTs on the blockchain
             </p>
           </div>
 
@@ -284,7 +288,7 @@ export default function Index() {
               <div className="text-center space-y-6">
                 <h2 className="text-2xl font-semibold">Connect Your Wallet</h2>
                 <p className="text-muted-foreground">
-                  Connect your MetaMask wallet to start tokenizing your data
+                  Connect your MetaMask wallet to start tokenizing your CSV data with AfriCoin
                 </p>
                 <WalletConnect
                   onConnect={handleWalletConnect}
@@ -295,27 +299,30 @@ export default function Index() {
               </div>
             )}
 
-            {/* Step 1: Upload File */}
+            {/* Step 1: Upload CSV File */}
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-2xl font-semibold mb-2">Upload Your Data</h2>
+                  <h2 className="text-2xl font-semibold mb-2">Upload Your CSV File</h2>
                   <p className="text-muted-foreground">
-                    Upload a CSV or Excel file containing the data you want to tokenize
+                    Upload a CSV file containing the data you want to tokenize on AfriCoin
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Supported formats: .csv (preferred) or .xlsx/.xls files
                   </p>
                 </div>
                 <FileUpload onFileUpload={handleFileUpload} />
               </div>
             )}
 
-            {/* Step 2: Preview Data */}
+            {/* Step 2: Preview CSV Data */}
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-2xl font-semibold">Preview Your Data</h2>
+                    <h2 className="text-2xl font-semibold">Preview Your CSV Data</h2>
                     <p className="text-muted-foreground">
-                      Select the rows you want to tokenize ({selectedRows.length} selected)
+                      Select the rows you want to tokenize as NFTs ({selectedRows.length} selected)
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -392,19 +399,19 @@ export default function Index() {
                     className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
                     disabled={selectedRows.length === 0}
                   >
-                    Proceed to Collection Setup
+                    Proceed to AfriCoin Collection Setup
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Configure Collection */}
+            {/* Step 3: Configure AfriCoin Collection */}
             {currentStep === 3 && (
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-2xl font-semibold mb-2">Configure Your Collection</h2>
+                  <h2 className="text-2xl font-semibold mb-2">Configure Your AfriCoin Collection</h2>
                   <p className="text-muted-foreground">
-                    Set up your NFT collection details
+                    Set up your NFT collection details for your CSV data
                   </p>
                 </div>
 
@@ -426,14 +433,14 @@ export default function Index() {
                       value={collectionSymbol}
                       onChange={(e) => setCollectionSymbol(e.target.value)}
                       className="w-full p-3 border border-border rounded-lg bg-background"
-                      placeholder="Enter collection symbol (e.g., DATA)"
+                      placeholder="Enter collection symbol (e.g., ACOIN)"
                     />
                   </div>
                   
                   <div className="bg-muted/50 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2">Collection Summary</h3>
+                    <h3 className="font-medium mb-2">AfriCoin Collection Summary</h3>
                     <p className="text-sm text-muted-foreground">
-                      {selectedRows.length} tokens will be minted
+                      {selectedRows.length} tokens will be minted from your CSV data
                     </p>
                   </div>
                 </div>
@@ -444,7 +451,7 @@ export default function Index() {
                     className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
                     disabled={!collectionName || !collectionSymbol}
                   >
-                    Start Minting
+                    Start Minting AfriCoin Tokens
                   </button>
                 </div>
               </div>
@@ -454,9 +461,9 @@ export default function Index() {
             {currentStep === 4 && (
               <div className="space-y-6">
                 <div className="text-center">
-                  <h2 className="text-2xl font-semibold mb-2">Minting Your Tokens</h2>
+                  <h2 className="text-2xl font-semibold mb-2">Minting Your AfriCoin Tokens</h2>
                   <p className="text-muted-foreground">
-                    {isMinting ? 'Processing your tokens...' : 'Minting completed!'}
+                    {isMinting ? 'Processing your CSV data into tokens...' : 'Minting completed successfully!'}
                   </p>
                 </div>
 
@@ -477,11 +484,11 @@ export default function Index() {
                     
                     {mintedTokens.length > 0 && (
                       <div>
-                        <h3 className="font-medium mb-2">Minted Tokens</h3>
+                        <h3 className="font-medium mb-2">Minted AfriCoin Tokens</h3>
                         <div className="max-h-32 overflow-y-auto space-y-1">
                           {mintedTokens.map((token) => (
                             <div key={token.id} className="flex justify-between text-sm">
-                              <span>Token #{token.id}</span>
+                              <span>AfriCoin Token #{token.id}</span>
                               <span className="text-muted-foreground font-mono text-xs">
                                 {token.hash.slice(0, 8)}...
                               </span>
@@ -507,7 +514,7 @@ export default function Index() {
                       }}
                       className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                     >
-                      Start New Project
+                      Start New AfriCoin Project
                     </button>
                   </div>
                 )}

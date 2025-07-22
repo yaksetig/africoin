@@ -1,10 +1,11 @@
+
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { ArrowUpCircle, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast'; // Assuming useToast is in @/hooks/use-toast
+import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
-  onFileUpload: (file: File) => void; // New prop: a callback to pass the uploaded file to the parent
+  onFileUpload: (file: File) => void;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
@@ -16,8 +17,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     if (!file) {
       toast({
         variant: "destructive",
-        title: "No file selected",
-        description: "Please select a file to upload.",
+        title: "No CSV file selected",
+        description: "Please select a CSV file to upload to AfriCoin.",
       });
       return;
     }
@@ -30,20 +31,19 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
       toast({
         variant: "destructive",
         title: "Invalid File Type",
-        description: "Please upload a CSV or Excel file (.csv, .xlsx, .xls).",
+        description: "Please upload a CSV file (.csv) or Excel file (.xlsx, .xls) for AfriCoin tokenization.",
       });
       return;
     }
 
-    // Pass the file directly to the parent component (Index.tsx) for parsing
     onFileUpload(file);
 
     toast({
-      title: "File Selected",
-      description: `"${file.name}" is ready for processing.`,
+      title: isCsv ? "CSV File Selected" : "Excel File Selected",
+      description: `"${file.name}" is ready for processing in AfriCoin.${isCsv ? ' (CSV format - perfect!)' : ' (Will be converted from Excel)'}`,
     });
 
-  }, [onFileUpload, toast]); // Dependencies for useCallback
+  }, [onFileUpload, toast]);
 
   const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
     onDrop,
@@ -52,10 +52,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
       'application/vnd.ms-excel': ['.xls'],
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
     },
-    multiple: false, // Only allow a single file
+    multiple: false,
   });
 
-  // Determine if a file has been "accepted" by the dropzone, even if not yet processed by parent
   const hasAcceptedFile = acceptedFiles.length > 0;
   const currentFileName = hasAcceptedFile ? acceptedFiles[0].name : null;
 
@@ -65,43 +64,51 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
         {...getRootProps()}
         className={`
           relative p-12 border-2 border-dashed rounded-xl
-          transition-all duration-300 ease-in-out
+          transition-all duration-300 ease-in-out cursor-pointer
           ${isDragActive
-            ? 'border-primary bg-primary/5'
-            : 'border-gray-300 hover:border-primary/50'}
+            ? 'border-primary bg-primary/5 scale-105'
+            : 'border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5'}
         `}
       >
         <input {...getInputProps()} />
         <div className="flex flex-col items-center text-center space-y-4">
           {hasAcceptedFile ? (
             <>
-              <CheckCircle2 className="w-12 h-12 text-primary animate-fadeIn" />
+              <CheckCircle2 className="w-16 h-16 text-primary animate-fadeIn" />
               <div className="space-y-2">
-                <p className="text-lg font-medium">{currentFileName}</p>
-                <p className="text-sm text-gray-500">File selected. Proceed to review data.</p>
+                <p className="text-xl font-semibold text-primary">{currentFileName}</p>
+                <p className="text-muted-foreground">
+                  {currentFileName?.endsWith('.csv') ? 'CSV file ready for AfriCoin tokenization!' : 'Excel file ready for processing!'}
+                </p>
               </div>
             </>
           ) : (
             <>
               {isDragActive ? (
-                <ArrowUpCircle className="w-12 h-12 text-primary animate-bounce" />
+                <ArrowUpCircle className="w-16 h-16 text-primary animate-bounce" />
               ) : (
-                <FileSpreadsheet className="w-12 h-12 text-gray-400" />
+                <FileSpreadsheet className="w-16 h-16 text-primary/60" />
               )}
-              <div className="space-y-2">
-                <p className="text-lg font-medium">
-                  {isDragActive ? 'Drop your file here' : 'Drag & drop your CSV or Excel file'}
+              <div className="space-y-3">
+                <p className="text-xl font-semibold">
+                  {isDragActive ? 'Drop your CSV file here' : 'Upload Your CSV File'}
                 </p>
-                <p className="text-sm text-gray-500">
-                  or click to select a file
+                <p className="text-muted-foreground text-base">
+                  Drag and drop your CSV file here, or click to browse
                 </p>
+                <div className="bg-primary/10 rounded-lg p-3 mt-4">
+                  <p className="text-sm text-primary font-medium">
+                    📊 CSV files work best with AfriCoin
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Also supports: Excel files (.xlsx, .xls)
+                  </p>
+                </div>
               </div>
             </>
           )}
         </div>
       </div>
-
-      {/* Removed the local preview section as Index.tsx now handles data parsing and preview */}
     </div>
   );
 };
