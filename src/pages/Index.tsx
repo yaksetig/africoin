@@ -36,7 +36,7 @@ const TOKENIZE_CONTRACT_ABI = [
   }
 ];
 
-const CONTRACT_ADDRESS = "0x1234567890123456789012345678901234567890"; // Replace with actual contract address
+const CONTRACT_ADDRESS = "0x6AB61b2006a18c630d6F8C5000D15A33B77F4Ba9"; //actual contract address
 
 interface DataRow {
   [key: string]: any;
@@ -241,7 +241,7 @@ export default function Index() {
               AfriCoin
             </h1>
             <p className="text-muted-foreground text-xl">
-              Transform your CSV data into blockchain tokens with ease
+              Seamlessly Tokenize Your Carbon Credits
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               Upload your CSV files and mint them as NFTs on the blockchain
@@ -305,10 +305,10 @@ export default function Index() {
                 <div className="text-center">
                   <h2 className="text-2xl font-semibold mb-2">Upload Your CSV File</h2>
                   <p className="text-muted-foreground">
-                    Upload a CSV file containing the data you want to tokenize on AfriCoin
+                    Upload a CSV or Excel file containing the data you want to tokenize on AfriCoin
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Supported formats: .csv (preferred) or .xlsx/.xls files
+                    Supported formats: .csv or .xlsx/.xls files
                   </p>
                 </div>
                 <FileUpload onFileUpload={handleFileUpload} />
