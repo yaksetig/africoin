@@ -6,12 +6,6 @@ import { FileUpload } from "@/components/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { ethers } from 'ethers';
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
 // Contract ABI for tokenization
 const TOKENIZE_CONTRACT_ABI = [
 {
@@ -2260,12 +2254,13 @@ interface CollectionConfig {
 }
 
 const Index = () => {
+  // Keeping your existing state variable names
   const [csvData, setCsvData] = useState<CSVRow[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [currentStep, setCurrentStep] = useState(1);
-  const [walletAddress, setWalletAddress] = useState<string>('');
-  const [isConnected, setIsConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string>(''); // Connected address
+  const [isConnected, setIsConnected] = useState(false); // Wallet connection status
   const [collectionConfig, setCollectionConfig] = useState<CollectionConfig>({
     name: '',
     symbol: '',
@@ -2282,45 +2277,105 @@ const Index = () => {
     isActive: false
   });
 
+  // New states for ethers.js provider and signer
+  const [ethersProvider, setEthersProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [ethersSigner, setEthersSigner] = useState<ethers.JsonRpcSigner | null>(null);
+
   const { toast } = useToast();
 
+  /**
+   * Handles file upload and parses data from CSV or Excel.
+   * Updates csvData and csvHeaders states.
+   */
   const handleFileUpload = useCallback((file: File) => {
     const reader = new FileReader();
+
     reader.onload = (e) => {
+      const data = e.target?.result;
+      if (!data) {
+        toast({
+          title: "File read error",
+          description: "No data found in the file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let parsedContent: CSVRow[] = [];
+      let headers: string[] = [];
+
       try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
-        
-        if (jsonData.length > 0) {
-          const headers = jsonData[0];
-          const rows = jsonData.slice(1).map((row, index) => {
-            const rowData: CSVRow = { id: index };
+        if (file.name.endsWith('.csv')) {
+          const lines = (data as string).split('\n').filter(line => line.trim() !== ''); // Filter out empty lines
+          if (lines.length === 0) throw new Error("CSV file is empty.");
+
+          headers = lines[0].split(',').map(h => h.trim());
+          parsedContent = lines.slice(1).map((line, rowIndex) => {
+            const values = line.split(',').map(v => v.trim());
+            const rowData: CSVRow = { id: rowIndex }; // Add an internal ID for selection
+            headers.forEach((header, i) => {
+              rowData[header] = values[i] || '';
+            });
+            return rowData;
+          });
+        } else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+
+          if (jsonData.length === 0) throw new Error("Excel sheet is empty.");
+
+          headers = jsonData[0];
+          parsedContent = jsonData.slice(1).map((row, rowIndex) => {
+            const rowData: CSVRow = { id: rowIndex }; // Add an internal ID for selection
             headers.forEach((header, i) => {
               rowData[header] = row[i] || '';
             });
             return rowData;
           });
-          
-          setCsvHeaders(headers);
-          setCsvData(rows);
-          setCurrentStep(2);
+        } else {
           toast({
-            title: "CSV file uploaded successfully",
-            description: `Loaded ${rows.length} rows with ${headers.length} columns`,
+            title: "Unsupported file type",
+            description: "Please upload a CSV or Excel file (.csv, .xlsx, .xls).",
+            variant: "destructive",
           });
+          return;
         }
-      } catch (error) {
+
+        if (parsedContent.length === 0) {
+            toast({
+                title: "No Data Found",
+                description: "The file was parsed, but no rows of data were found.",
+                variant: "info",
+            });
+            return;
+        }
+
+        setCsvHeaders(headers);
+        setCsvData(parsedContent);
+        setCurrentStep(2); // Move to Review Data step
         toast({
-          title: "Error reading CSV file",
-          description: "Please make sure your CSV file is properly formatted",
+          title: "File processed successfully",
+          description: `Found ${parsedContent.length} records in ${file.name}.`,
+        });
+      } catch (error: any) {
+        console.error("Error parsing file:", error);
+        toast({
+          title: "Error parsing file",
+          description: error.message || "Please check your file format and content, then try again.",
           variant: "destructive",
         });
+        setCsvData([]);
+        setCsvHeaders([]);
       }
     };
-    reader.readAsBinaryString(file);
+
+    if (file.name.endsWith('.csv')) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsBinaryString(file);
+    }
   }, [toast]);
 
   const handleRowSelection = (rowIndex: number) => {
@@ -2351,11 +2406,14 @@ const Index = () => {
     });
   };
 
-  const handleWalletConnect = (address: string) => {
+  // Updated to receive provider and signer from WalletConnect
+  const handleWalletConnect = (address: string, provider: ethers.BrowserProvider, signer: ethers.JsonRpcSigner) => {
     setWalletAddress(address);
     setIsConnected(true);
+    setEthersProvider(provider);
+    setEthersSigner(signer);
     if (csvData.length > 0) {
-      setCurrentStep(3);
+      setCurrentStep(3); // Only move to step 3 if there's data to mint
     }
     toast({
       title: "Wallet connected successfully",
@@ -2366,6 +2424,8 @@ const Index = () => {
   const handleWalletDisconnect = () => {
     setWalletAddress('');
     setIsConnected(false);
+    setEthersProvider(null);
+    setEthersSigner(null);
     setCurrentStep(csvData.length > 0 ? 2 : 1);
     toast({
       title: "Wallet disconnected",
@@ -2375,56 +2435,204 @@ const Index = () => {
 
   const downloadTemplate = () => {
     const templateData = [
-      ['Name', 'Description', 'Category', 'Value', 'Owner'],
-      ['Sample Item 1', 'A sample tokenizable asset', 'Real Estate', '100000', 'John Doe'],
-      ['Sample Item 2', 'Another tokenizable asset', 'Art', '50000', 'Jane Smith']
+      ['SerialNumber', 'CarbonQuantity', 'ProjectID', 'VintageYear', 'GeographicCoordinates', 'Description'],
+      ['1001', '50', 'ProjectAlpha', '2023', '34.0522,-118.2437', 'Carbon offset from renewable energy project.'],
+      ['1002', '75', 'ProjectBeta', '2024', '40.7128,-74.0060', 'Carbon offset from sustainable forestry.']
     ];
-    
+
     const ws = XLSX.utils.aoa_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, "africoin_template.csv");
+    XLSX.writeFile(wb, "africoin_carbon_credit_template.csv");
   };
 
-  const handleMintTokens = async () => {
-    if (!isConnected || !window.ethereum) {
+  /**
+   * Handles the minting of selected individual NFTs directly via MetaMask.
+   * Renamed from handleMintTokens for clarity, aligning with previous discussions.
+   */
+  const mintIndividualNFTs = async () => {
+    if (!isConnected || !walletAddress || !ethersProvider || !ethersSigner) {
       toast({
-        title: "Wallet not connected",
-        description: "Please connect your wallet first",
+        title: "Wallet Not Ready",
+        description: "Please ensure your wallet is connected and ready for transactions.",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, TOKENIZE_CONTRACT_ABI, signer);
+    const selectedData = Array.from(selectedRows).map(index => csvData[index]);
 
-      setMintingProgress({ current: 0, total: csvData.length, isActive: true });
-
-      for (let i = 0; i < csvData.length; i++) {
-        const row = csvData[i];
-        // Simulate minting process
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setMintingProgress(prev => ({ ...prev, current: i + 1 }));
-      }
-
-      setMintingProgress(prev => ({ ...prev, isActive: false }));
-      setCurrentStep(4);
-      
+    if (selectedData.length === 0) {
       toast({
-        title: "Tokens minted successfully!",
-        description: `Successfully minted ${csvData.length} tokens from your CSV data`,
-      });
-    } catch (error) {
-      console.error('Minting error:', error);
-      setMintingProgress(prev => ({ ...prev, isActive: false }));
-      toast({
-        title: "Minting failed",
-        description: "There was an error minting your tokens. Please try again.",
+        title: "No items selected",
+        description: "Please select at least one row to mint.",
         variant: "destructive",
       });
+      return;
+    }
+
+    setMintingProgress({ current: 0, total: selectedData.length, isActive: true });
+    setCurrentStep(3); // Move to the Minting NFTs step
+
+    try {
+      // 1. Prepare data for IPFS upload
+      const carbonCreditDataList = selectedData.map(row => {
+        // IMPORTANT: Customize this mapping based on your actual CSV/Excel column headers
+        // These keys should match what you expect in your Flask backend for metadata generation
+        const serialNumber = String(row?.SerialNumber || row?.serialNumber || row?.id || row[Object.keys(row)[0]] || '');
+        return {
+          serialNumber: serialNumber,
+          CarbonQuantity: row?.['CarbonQuantity'] || row?.['Carbon Quantity'] || 'N/A',
+          ProjectID: row?.['ProjectID'] || row?.['Project ID'] || 'N/A',
+          VintageYear: row?.['VintageYear'] || row?.['Vintage Year'] || 'N/A',
+          GeographicCoordinates: row?.['GeographicCoordinates'] || row?.['Geographic Coordinates'] || 'N/A',
+          Description: row?.['Description'] || 'A unique carbon credit NFT.', // Add a generic description if not in CSV
+          Name: row?.['Name'] || `Carbon Credit NFT #${serialNumber}`, // Add a generic name
+          Image: "ipfs://QmYourDefaultImageHashHere" // Default image hash for IPFS metadata
+          // Add more attributes based on your CSV/Excel columns
+        };
+      }).filter(item => item.serialNumber);
+
+      if (carbonCreditDataList.length === 0) {
+          toast({
+              title: "Data Error",
+              description: "Could not extract valid serial numbers from selected rows for IPFS upload.",
+              variant: "destructive",
+          });
+          setMintingProgress(prev => ({ ...prev, isActive: false }));
+          return;
+      }
+
+      // 2. Call backend to upload metadata to IPFS
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      if (!backendUrl) {
+        throw new Error("VITE_BACKEND_URL is not configured in .env file.");
+      }
+
+      toast({
+        title: "Uploading Metadata to IPFS",
+        description: "This may take a moment...",
+        variant: "info",
+      });
+
+      const ipfsUploadResponse = await fetch(`${backendUrl}/upload_metadata_to_ipfs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ carbonCreditDataList }),
+      });
+
+      if (!ipfsUploadResponse.ok) {
+        const errorData = await ipfsUploadResponse.json();
+        throw new Error(`IPFS upload failed: ${errorData.message || ipfsUploadResponse.statusText}`);
+      }
+
+      const ipfsResult = await ipfsUploadResponse.json();
+      const uploadedURIsMap = new Map(ipfsResult.uploadedURIs.map((item: any) => [item.serialNumber, item.tokenURI]));
+
+      if (ipfsResult.uploadedURIs.filter((item: any) => item.tokenURI).length === 0) {
+          throw new Error("No metadata successfully uploaded to IPFS.");
+      }
+
+      toast({
+        title: "Metadata Uploaded",
+        description: `Successfully uploaded metadata for ${ipfsResult.uploadedURIs.length} items to IPFS.`,
+        variant: "success",
+      });
+
+      // 3. Instantiate the contract using the constant ABI and signer from MetaMask
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        TOKENIZE_CONTRACT_ABI,
+        ethersSigner
+      );
+
+      const successfulMints: { serialNumber: string; transactionHash: string }[] = [];
+      const failedMints: { serialNumber: string; error: string }[] = [];
+
+      for (let i = 0; i < carbonCreditDataList.length; i++) {
+        const item_data = carbonCreditDataList[i];
+        const serial_num_str = item_data.serialNumber;
+        const tokenURI = uploadedURIsMap.get(serial_num_str);
+
+        if (!tokenURI) {
+            failedMints.push({ serialNumber: serial_num_str, error: "Metadata URI not found from IPFS upload." });
+            setMintingProgress(prev => ({ ...prev, current: prev.current + 1 })); // Update progress even on failure
+            continue;
+        }
+
+        try {
+          const tokenId = parseInt(serial_num_str);
+          if (isNaN(tokenId)) {
+            throw new Error(`Invalid tokenId: '${serial_num_str}' is not a valid number. Token IDs must be numeric.`);
+          }
+
+          // --- CHANGE HERE: Call the mintToken function without the tokenURI parameter ---
+          // Based on your latest tokenize.sol, it's `mintToken(address to, uint256 serialNumber)`
+          const tx = await contract.mintToken(walletAddress, tokenId); // Removed tokenURI parameter
+
+          await tx.wait(); // Wait for the transaction to be mined
+
+          successfulMints.push({ serialNumber: serial_num_str, transactionHash: tx.hash });
+          console.log(`Minted token ${serial_num_str}. Tx Hash: ${tx.hash}`);
+
+        } catch (error: any) {
+          console.error(`Error minting token ${serial_num_str}:`, error);
+          let errorMessage = error.message;
+          if (error.code === 4001) {
+              errorMessage = "Transaction rejected by user in MetaMask.";
+          } else if (error.data && error.data.message) {
+              errorMessage = error.data.message;
+          }
+          failedMints.push({ serialNumber: serial_num_str, error: errorMessage });
+        } finally {
+            setMintingProgress(prev => ({ ...prev, current: prev.current + 1 })); // Always update progress
+        }
+      }
+
+      if (successfulMints.length > 0) {
+        setMintingProgress(prev => ({ ...prev, isActive: false })); // Stop progress animation
+        toast({
+          title: "NFTs minted successfully",
+          description: `Successfully minted ${successfulMints.length} out of ${carbonCreditDataList.length} tokens!`,
+          variant: "success",
+        });
+        setCurrentStep(4); // Move to collection step after minting
+      }
+
+      if (failedMints.length > 0) {
+        toast({
+          title: "Partial Minting Success",
+          description: `${failedMints.length} tokens failed to mint. Check console for details.`,
+          variant: "warning",
+        });
+        setMintingProgress(prev => ({ ...prev, isActive: false })); // Stop progress animation
+        if (successfulMints.length === 0) {
+            setMintingProgress(prev => ({ ...prev, isActive: false })); // Stop progress animation
+            // If all failed, stay on step 3 or move to a specific error step
+            // For now, let's keep it on step 3 to show the failure state
+        } else {
+            setCurrentStep(4); // Move to collection step if at least some succeeded
+        }
+      }
+
+      if (successfulMints.length === 0 && failedMints.length > 0) {
+          // If all failed, set status to failed and keep on step 3
+          setMintingProgress(prev => ({ ...prev, isActive: false }));
+          // No need to change step, stay on 3 to show failure
+      }
+
+
+    } catch (error) {
+      console.error('Critical error during minting process:', error);
+      setMintingProgress(prev => ({ ...prev, isActive: false }));
+      toast({
+        title: "Minting Process Failed",
+        description: "An unexpected error occurred during the minting process. Check console.",
+        variant: "destructive",
+      });
+      // Stay on step 3 to show the error
     }
   };
 
@@ -2440,373 +2648,256 @@ const Index = () => {
       maxSupply: 1000
     });
     setMintingProgress({ current: 0, total: 0, isActive: false });
+    // Keep wallet connected if it was connected
   };
 
+  // Define the steps for the progress indicator
+  const steps = [
+    { number: 1, title: 'Upload File', icon: Upload },
+    { number: 2, title: 'Review Data', icon: FileText },
+    { number: 3, title: 'Mint NFTs', icon: Coins },
+    { number: 4, title: 'Create Collection', icon: CheckCircle }
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Coins className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">AfriCoin</h1>
-                <p className="text-muted-foreground">Transform your CSV data into blockchain tokens</p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-b from-white to-accent/20">
+      <div className="container px-4 py-16 mx-auto">
+        {/* Header */}
+        <header className="flex justify-between items-center mb-16">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+            <span className="text-primary">Afri</span>
+            <span className="text-secondary">coin</span>
+          </h1>
+          {/* WalletConnect component, passing props for connection status */}
+          <WalletConnect
+            onConnect={handleWalletConnect} // Pass the updated handler
+            onDisconnect={handleWalletDisconnect} // Pass the updated handler
+            connected={isConnected} // Use your existing isConnected state
+            currentAddress={walletAddress} // Use your existing walletAddress state
+          />
+        </header>
+
+        {/* Main Content */}
+        <main className="max-w-4xl mx-auto text-center space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+              Issue New Carbon Credits
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Simply upload your CSV or Excel file with serial numbers and geographic coordinates, and we'll mint unique NFTs for each row.
+            </p>
+          </div>
+
+          {/* Progress Steps Indicator */}
+          <div className="flex justify-center mb-12 mt-8">
+            <div className="flex space-x-4">
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                const isActive = currentStep === step.number;
+                const isCompleted = currentStep > step.number;
+
+                return (
+                  <div key={step.number} className="flex items-center">
+                    <div className={`flex flex-col items-center ${index > 0 ? 'ml-4' : ''}`}>
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        isCompleted ? 'bg-green-500' : isActive ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <span className={`text-sm mt-2 ${
+                        isActive ? 'text-blue-600 font-semibold' : 'text-gray-600'
+                      }`}>
+                        {step.title}
+                      </span>
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className={`w-16 h-0.5 mt-6 ${
+                        currentStep > step.number ? 'bg-green-500' : 'bg-gray-300'
+                      }`} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <WalletConnect 
-              onConnect={handleWalletConnect} 
-              onDisconnect={handleWalletDisconnect}
-              connected={isConnected}
-              currentAddress={walletAddress}
-            />
           </div>
-        </div>
-      </header>
 
-      {/* Progress Steps */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center mb-12">
-          <div className="flex items-center space-x-8">
-            {[
-              { step: 1, label: 'Upload CSV', icon: Upload },
-              { step: 2, label: 'Review Data', icon: FileText },
-              { step: 3, label: 'Configure', icon: Coins },
-              { step: 4, label: 'Complete', icon: CheckCircle }
-            ].map(({ step, label, icon: Icon }) => (
-              <div key={step} className="flex items-center">
-                <div className={`
-                  flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all
-                  ${currentStep >= step 
-                    ? 'bg-primary text-primary-foreground border-primary' 
-                    : 'bg-background text-muted-foreground border-border'
-                  }
-                `}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <span className={`
-                  ml-3 text-sm font-medium
-                  ${currentStep >= step ? 'text-foreground' : 'text-muted-foreground'}
-                `}>
-                  {label}
-                </span>
-                {step < 4 && (
-                  <div className={`
-                    w-16 h-0.5 ml-8
-                    ${currentStep > step ? 'bg-primary' : 'bg-border'}
-                  `} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+          {/* Conditional Rendering based on currentStep */}
 
-        {/* Step Content */}
-        <div className="max-w-4xl mx-auto">
+          {/* Step 1: File Upload */}
           {currentStep === 1 && (
-            <div className="space-y-8">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-foreground mb-4">Upload Your CSV File</h2>
-                <p className="text-muted-foreground mb-8">
-                  Upload your CSV file containing the data you want to tokenize on the blockchain.
-                  Each row will become a unique token.
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                  Upload Your Carbon Credit Data
+                </h2>
+                <p className="text-gray-600">
+                  Support for CSV and Excel files (.csv, .xlsx, .xls)
                 </p>
               </div>
-
               <FileUpload onFileUpload={handleFileUpload} />
-
-              <div className="text-center">
-                <button
-                  onClick={downloadTemplate}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download CSV Template
-                </button>
-              </div>
             </div>
           )}
 
-          {currentStep === 2 && csvData.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
+          {/* Step 2: Data Preview */}
+          {currentStep === 2 && (
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">Review Your Data</h2>
-                  <p className="text-muted-foreground">
-                    Review and select the rows you want to tokenize. Each selected row will become an NFT.
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                    Review Your Data
+                  </h2>
+                  <p className="text-gray-600">
+                    {csvData.length} records found
                   </p>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex space-x-4">
                   <button
                     onClick={handleSelectAll}
-                    className="px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors border border-primary rounded-md"
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                   >
                     {selectedRows.size === csvData.length ? 'Deselect All' : 'Select All'}
                   </button>
-                  {selectedRows.size > 0 && (
-                    <>
-                      <button
-                        onClick={handleDeleteSelected}
-                        className="px-4 py-2 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors border border-destructive rounded-md"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2 inline" />
-                        Delete Selected ({selectedRows.size})
-                      </button>
-                      <button
-                        onClick={() => setCurrentStep(3)}
-                        disabled={!isConnected}
-                        className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Continue with {selectedRows.size} items
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="border border-border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="w-12 p-4">
-                          <input
-                            type="checkbox"
-                            checked={selectedRows.size === csvData.length && csvData.length > 0}
-                            onChange={handleSelectAll}
-                            className="rounded border-border"
-                          />
-                        </th>
-                        {csvHeaders.map((header, index) => (
-                          <th key={index} className="text-left p-4 font-medium text-foreground">
-                            {header}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {csvData.map((row, rowIndex) => (
-                        <tr 
-                          key={rowIndex} 
-                          className={`
-                            border-t border-border hover:bg-muted/50 transition-colors
-                            ${selectedRows.has(rowIndex) ? 'bg-primary/5' : ''}
-                          `}
-                        >
-                          <td className="p-4">
-                            <input
-                              type="checkbox"
-                              checked={selectedRows.has(rowIndex)}
-                              onChange={() => handleRowSelection(rowIndex)}
-                              className="rounded border-border"
-                            />
-                          </td>
-                          {csvHeaders.map((header, colIndex) => (
-                            <td key={colIndex} className="p-4 text-foreground">
-                              {String(row[header] || '')}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {!isConnected && (
-                <div className="text-center p-6 bg-muted/50 rounded-lg">
-                  <p className="text-muted-foreground mb-4">
-                    Connect your wallet to continue with tokenization
-                  </p>
-                  <WalletConnect 
-                    onConnect={handleWalletConnect} 
-                    onDisconnect={handleWalletDisconnect}
-                    connected={isConnected}
-                    currentAddress={walletAddress}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {currentStep === 3 && (
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground mb-4">Configure Your Collection</h2>
-                <p className="text-muted-foreground">
-                  Set up your token collection details before minting.
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Collection Name
-                    </label>
-                    <input
-                      type="text"
-                      value={collectionConfig.name}
-                      onChange={(e) => setCollectionConfig(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="My AfriCoin Collection"
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Symbol
-                    </label>
-                    <input
-                      type="text"
-                      value={collectionConfig.symbol}
-                      onChange={(e) => setCollectionConfig(prev => ({ ...prev, symbol: e.target.value }))}
-                      placeholder="AFRC"
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={collectionConfig.description}
-                      onChange={(e) => setCollectionConfig(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe your tokenized collection..."
-                      rows={4}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Max Supply
-                    </label>
-                    <input
-                      type="number"
-                      value={collectionConfig.maxSupply}
-                      onChange={(e) => setCollectionConfig(prev => ({ ...prev, maxSupply: parseInt(e.target.value) || 0 }))}
-                      min="1"
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-muted/50 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">Minting Summary</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">CSV Rows:</span>
-                      <span className="font-medium text-foreground">{csvData.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Selected for Minting:</span>
-                      <span className="font-medium text-foreground">{selectedRows.size}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Collection Name:</span>
-                      <span className="font-medium text-foreground">{collectionConfig.name || 'Not set'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Symbol:</span>
-                      <span className="font-medium text-foreground">{collectionConfig.symbol || 'Not set'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Connected Wallet:</span>
-                      <span className="font-medium text-foreground text-xs">
-                        {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
-                      </span>
-                    </div>
-                  </div>
-
                   <button
-                    onClick={handleMintTokens}
-                    disabled={!collectionConfig.name || !collectionConfig.symbol || selectedRows.size === 0 || mintingProgress.isActive}
-                    className="w-full mt-6 px-6 py-3 bg-primary text-primary-foreground font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleDeleteSelected}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center"
                   >
-                    {mintingProgress.isActive ? 'Minting...' : `Mint ${selectedRows.size} Tokens`}
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected
                   </button>
                 </div>
               </div>
 
-              {mintingProgress.isActive && (
-                <div className="bg-muted/50 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-foreground">Minting Progress</h3>
-                    <span className="text-sm text-muted-foreground">
-                      {mintingProgress.current} of {mintingProgress.total}
-                    </span>
-                  </div>
-                  <div className="w-full bg-border rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${(mintingProgress.current / mintingProgress.total) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              )}
+              <div className="overflow-x-auto max-h-96 border rounded-lg">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.size === csvData.length && csvData.length > 0}
+                          onChange={handleSelectAll}
+                          className="w-4 h-4"
+                        />
+                      </th>
+                      {csvHeaders.map((header) => (
+                        <th key={header} className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvData.map((row, index) => (
+                      <tr key={index} className={`border-t ${selectedRows.has(index) ? 'bg-blue-50' : ''}`}>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.has(index)}
+                            onChange={() => handleRowSelection(index)}
+                            className="w-4 h-4"
+                          />
+                        </td>
+                        {csvHeaders.map((header, colIndex) => (
+                          <td key={colIndex} className="px-4 py-3 text-sm text-gray-900">
+                            {String(row[header])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={mintIndividualNFTs} // Call the new minting function
+                  disabled={selectedRows.size === 0 || !isConnected || mintingProgress.isActive}
+                  className={`px-8 py-3 rounded-lg font-semibold transition-colors ${
+                    selectedRows.size === 0 || !isConnected || mintingProgress.isActive
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                  }`}
+                >
+                  {mintingProgress.isActive ? 'Minting...' : `Mint ${selectedRows.size} NFTs`}
+                </button>
+              </div>
             </div>
           )}
 
+          {/* Step 3: Minting NFTs */}
+          {currentStep === 3 && (
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                  Minting Individual NFTs
+                </h2>
+
+                {mintingProgress.isActive ? (
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mb-4"></div>
+                    <p className="text-lg text-gray-600">
+                      Minting {mintingProgress.current} of {mintingProgress.total} NFTs on the blockchain...
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      This may take a few moments
+                    </p>
+                  </div>
+                ) : (
+                  // Display success or failure based on last minting attempt
+                  mintingProgress.current === mintingProgress.total ? (
+                    <div className="flex flex-col items-center">
+                      <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+                      <p className="text-lg text-gray-800 mb-4">
+                        Successfully minted {mintingProgress.total} NFTs!
+                      </p>
+                      <button
+                        // This button would trigger the 'Create Collection' step if applicable
+                        // For now, it's a placeholder
+                        onClick={() => setCurrentStep(4)}
+                        className="px-8 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-semibold"
+                      >
+                        Create Collection
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <Trash2 className="w-16 h-16 text-red-500 mb-4" />
+                      <p className="text-lg text-gray-800 mb-4">
+                        NFT minting failed or was incomplete.
+                      </p>
+                      <button
+                        onClick={resetProcess}
+                        className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Collection Creation (Placeholder) */}
           {currentStep === 4 && (
-            <div className="text-center space-y-8">
-              <div className="mx-auto w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-12 w-12 text-primary" />
-              </div>
-              
-              <div>
-                <h2 className="text-3xl font-bold text-foreground mb-4">Tokenization Complete!</h2>
-                <p className="text-lg text-muted-foreground mb-8">
-                  Successfully minted {csvData.length} tokens from your CSV data.
-                  Your AfriCoin collection is now live on the blockchain!
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                  Collection Creation (Future Feature)
+                </h2>
+                <p className="text-lg text-gray-600">
+                  This step will allow you to create a new NFT collection or manage existing ones.
                 </p>
-              </div>
-
-              <div className="bg-muted/50 rounded-lg p-6 max-w-md mx-auto">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Collection Details</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Name:</span>
-                    <span className="font-medium text-foreground">{collectionConfig.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Symbol:</span>
-                    <span className="font-medium text-foreground">{collectionConfig.symbol}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Supply:</span>
-                    <span className="font-medium text-foreground">{csvData.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Contract:</span>
-                    <span className="font-medium text-foreground text-xs">
-                      {CONTRACT_ADDRESS.slice(0, 6)}...{CONTRACT_ADDRESS.slice(-4)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-center space-x-4">
                 <button
                   onClick={resetProcess}
-                  className="px-6 py-3 border border-border text-foreground rounded-md hover:bg-muted transition-colors"
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mt-6"
                 >
-                  Create Another Collection
-                </button>
-                <button
-                  onClick={() => window.open(`https://etherscan.io/address/${CONTRACT_ADDRESS}`, '_blank')}
-                  className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  View on Etherscan
+                  Mint Another Batch
                 </button>
               </div>
             </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
