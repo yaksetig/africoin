@@ -6,7 +6,7 @@ import { FileUpload } from "@/components/FileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { ethers } from 'ethers';
 
-// Contract ABI for tokenizat ion
+// Contract ABI for tokenization
 const TOKENIZE_CONTRACT_ABI = [
 {
                         "inputs": [
