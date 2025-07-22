@@ -6,8 +6,7 @@
     import { useToast } from "@/hooks/use-toast";
     import { ethers } from 'ethers';
 
-    // --- IMPORTANT: Replace with your actual deployed contract ABI and Address ---
-    // PASTE YOUR COPIED ABI ARRAY HERE from compiled_code.json
+
     const TOKENIZE_CONTRACT_ABI = [
       {
                         "inputs": [
