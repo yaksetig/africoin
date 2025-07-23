@@ -2239,7 +2239,7 @@ const TOKENIZE_CONTRACT_ABI = [
                     }
 ];
 
-// Contract address 
+// contract address 
 const CONTRACT_ADDRESS = "0x6AB61b2006a18c630d6F8C5000D15A33B77F4Ba9"; //actual
 
 interface CSVRow {
@@ -2328,7 +2328,7 @@ const Index = () => {
 
           headers = jsonData[0];
           parsedContent = jsonData.slice(1).map((row, rowIndex) => {
-            const rowData: CSVRow = { id: rowIndex }; // Add an internal ID for selection
+            const rowData: CSVRow = { id: rowIndex }; // internal ID row for selection
             headers.forEach((header, i) => {
               rowData[header] = row[i] || '';
             });
