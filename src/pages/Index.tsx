@@ -2241,7 +2241,7 @@ const TOKENIZE_CONTRACT_ABI = [
 
 // contract address 
 const CONTRACT_ADDRESS = "0x6AB61b2006a18c630d6F8C5000D15A33B77F4Ba9"; //actual
-const BACKEND_URL = "http://localhost:5000"
+const BACKEND_URL = "http://127.0.0.1:5000"
 
 interface CSVRow {
   [key: string]: string | number;
