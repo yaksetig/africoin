@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button'; // Assuming this is your button component
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast'; 
 import { ethers } from 'ethers'; 
 
