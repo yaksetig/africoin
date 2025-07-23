@@ -58,8 +58,12 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
       console.log('Connected accounts:', accounts);
 
       if (accounts.length > 0) {
+        // Create provider and signer
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        
         // If accounts are successfully retrieved, call the onConnect callback
-        onConnect(accounts[0]);
+        onConnect(accounts[0], provider, signer);
         // Toast is now handled by the parent (Index.tsx) via onConnect callback
       } else {
         throw new Error('No accounts returned from MetaMask.');
@@ -106,10 +110,13 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
     if (typeof window.ethereum !== 'undefined') {
       console.log('Setting up account change listener...');
 
-      const handleAccountsChanged = (accounts: string[]) => {
+      const handleAccountsChanged = async (accounts: string[]) => {
         console.log('Accounts changed:', accounts);
         if (accounts.length > 0) {
-          onConnect(accounts[0]); // Account changed to a new one or reconnected
+          // Create provider and signer for account change
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          onConnect(accounts[0], provider, signer); // Account changed to a new one or reconnected
         } else {
           onDisconnect(); // All accounts disconnected
         }
@@ -120,10 +127,13 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
 
       // Check if already connected on component mount
       window.ethereum.request({ method: 'eth_accounts' })
-        .then((accounts: string[]) => {
+        .then(async (accounts: string[]) => {
           console.log('Initial accounts check:', accounts);
           if (accounts.length > 0) {
-            onConnect(accounts[0]); // Already connected
+            // Create provider and signer for initial connection
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            onConnect(accounts[0], provider, signer); // Already connected
           } else {
             onDisconnect(); // Not connected on mount
           }
