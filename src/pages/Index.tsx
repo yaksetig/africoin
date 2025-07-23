@@ -2407,19 +2407,11 @@ const Index = () => {
   };
 
   // Updated to only receive address, then create provider and signer
-  const handleWalletConnect = async (address: string) => {
+  const handleWalletConnect = (address: string, provider: ethers.BrowserProvider, signer: ethers.JsonRpcSigner) => {
     setWalletAddress(address);
     setIsConnected(true);
-    
-    // Create provider and signer from the connected wallet
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      setEthersProvider(provider);
-      setEthersSigner(signer);
-    } catch (error) {
-      console.error('Error creating provider/signer:', error);
-    }
+    setEthersProvider(provider);
+    setEthersSigner(signer); // Set the signer here
     if (csvData.length > 0) {
       setCurrentStep(3); // Only move to step 3 if there's data to mint
     }
