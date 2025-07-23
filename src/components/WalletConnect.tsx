@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button'; // Assuming this is your button component
-import { useToast } from '@/hooks/use-toast'; // Assuming useToast is in @/hooks/use-toast
+import { useToast } from '@/hooks/use-toast'; 
+import { ethers } from 'ethers'; 
+
 
 // Extend the Window interface to include ethereum for MetaMask detection
 declare global {
@@ -11,7 +13,7 @@ declare global {
 
 // Define the props interface for WalletConnect
 interface WalletConnectProps {
-  onConnect: (address: string) => void; // Callback when wallet connects, passes the address
+  onConnect: (address: string, provider: ethers.BrowserProvider, signer: ethers.JsonRpcSigner) => void;
   onDisconnect: () => void; // Callback when wallet disconnects
   connected: boolean; // Prop indicating if wallet is currently connected (from parent)
   currentAddress: string | null; // Prop for the currently connected address (from parent)
