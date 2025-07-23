@@ -2407,11 +2407,11 @@ const Index = () => {
   };
 
   // Updated to only receive address, then create provider and signer
-  const handleWalletConnect = (address: string, provider: ethers.BrowserProvider, signer: ethers.JsonRpcSigner) => {
+  const handleWalletConnect = useCallback((address: string, provider: ethers.BrowserProvider, signer: ethers.JsonRpcSigner) => {
     setWalletAddress(address);
     setIsConnected(true);
     setEthersProvider(provider);
-    setEthersSigner(signer); // Set the signer here
+    setEthersSigner(signer);
     if (csvData.length > 0) {
       setCurrentStep(3); // Only move to step 3 if there's data to mint
     }
@@ -2419,9 +2419,10 @@ const Index = () => {
       title: "Wallet connected successfully",
       description: `Connected to ${address.slice(0, 6)}...${address.slice(-4)}`,
     });
-  };
+  }, [csvData.length, toast]); // Dependencies for useCallback
 
-  const handleWalletDisconnect = () => {
+  // --- FIX: Wrap handleWalletDisconnect in useCallback ---
+  const handleWalletDisconnect = useCallback(() => {
     setWalletAddress('');
     setIsConnected(false);
     setEthersProvider(null);
@@ -2431,7 +2432,8 @@ const Index = () => {
       title: "Wallet disconnected",
       description: "Your wallet has been disconnected",
     });
-  };
+  }, [csvData.length, toast]); // Dependencies for useCallback
+
 
   const downloadTemplate = () => {
     const templateData = [
