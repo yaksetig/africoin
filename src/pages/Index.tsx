@@ -2456,7 +2456,6 @@ const Index = () => {
 
   /**
    * Handles the minting of selected individual NFTs directly via MetaMask.
-   * Renamed from handleMintTokens for clarity
    */
   const mintIndividualNFTs = async () => {
     if (!isConnected || !walletAddress || !ethersProvider || !ethersSigner) {
@@ -2485,8 +2484,7 @@ const Index = () => {
     try {
       // 1. Prepare data for IPFS upload
       const carbonCreditDataList = selectedData.map(row => {
-        // IMPORTANT: Customize this mapping based on your actual CSV/Excel column headers
-        // These keys should match what you expect in your Flask backend for metadata generation
+        // keys should match what you expect in your Flask backend for metadata generation
         const serialNumber = String(row?.SerialNumber || row?.serialNumber || row?.id || row[Object.keys(row)[0]] || '');
         return {
           serialNumber: serialNumber,
@@ -2494,9 +2492,9 @@ const Index = () => {
           ProjectID: row?.['ProjectID'] || row?.['Project ID'] || 'N/A',
           VintageYear: row?.['VintageYear'] || row?.['Vintage Year'] || 'N/A',
           GeographicCoordinates: row?.['GeographicCoordinates'] || row?.['Geographic Coordinates'] || 'N/A',
-          Description: row?.['Description'] || 'A unique carbon credit NFT.', // Add a generic description if not in CSV
-          Name: row?.['Name'] || `Carbon Credit NFT #${serialNumber}` // Add a generic name
-          // Add more attributes based on your CSV/Excel columns
+          Description: row?.['Description'] || 'A unique carbon credit NFT.',
+          Name: row?.['Name'] || `Carbon Credit NFT #${serialNumber}`
+          // Any more attributes?
         };
       }).filter(item => item.serialNumber);
 
