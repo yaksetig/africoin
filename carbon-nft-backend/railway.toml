@@ -3,6 +3,7 @@ builder = "NIXPACKS"
 
 [deploy]
 startCommand = "npm start"
+workingDirectory = "/app/carbon-nft-backend"
 
 [env]
 NODE_ENV = "production"
