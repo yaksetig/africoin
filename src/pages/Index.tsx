@@ -2414,11 +2414,9 @@ const Index = () => {
     setEthersProvider(provider);
     setEthersSigner(signer);
     
-    if (csvData.length > 0 && currentStep === 2) { 
-      setCurrentStep(3); 
-    } else if (csvData.length === 0 && currentStep !== 1) {
-        // If wallet connects but no data is uploaded, ensure we are on step 1 (Upload File)
-        setCurrentStep(1);
+    if (csvData.length === 0 && currentStep !== 1) {
+      // If wallet connects but no data is uploaded, ensure we are on step 1 (Upload File)
+      setCurrentStep(1);
     }
     
     toast({
@@ -2844,6 +2842,8 @@ const Index = () => {
                       This may take a few moments
                     </p>
                   </div>
+                ) : mintingProgress.total === 0 ? (
+                  <p className="text-lg text-gray-600">Awaiting minting to start…</p>
                 ) : (
                   // Display success or failure based on last minting attempt
                   mintingProgress.current === mintingProgress.total ? (
