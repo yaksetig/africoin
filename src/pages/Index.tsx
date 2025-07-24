@@ -2654,8 +2654,7 @@ const Index = () => {
   const steps = [
     { number: 1, title: 'Upload File', icon: Upload },
     { number: 2, title: 'Review Data', icon: FileText },
-    { number: 3, title: 'Mint NFTs', icon: Coins },
-    { number: 4, title: 'Create Collection', icon: CheckCircle }
+    { number: 3, title: 'Mint NFTs', icon: Coins }
   ];
 
   return (
@@ -2849,14 +2848,9 @@ const Index = () => {
                       <p className="text-lg text-gray-800 mb-4">
                         Successfully minted {mintingProgress.total} NFTs!
                       </p>
-                      <button
-                        // This button would trigger the 'Create Collection' step if applicable
-                        // For now, it's a placeholder
-                        onClick={() => setCurrentStep(4)}
-                        className="px-8 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-semibold"
-                      >
-                        Create Collection
-                      </button>
+                      <p className="text-sm text-gray-500 mt-4">
+                        Process complete! Your carbon credit NFTs have been successfully minted.
+                      </p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center">
@@ -2877,25 +2871,6 @@ const Index = () => {
             </div>
           )}
 
-          {/* Step 4: Collection Creation (Placeholder) */}
-          {currentStep === 4 && (
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                  Collection Creation (Future Feature)
-                </h2>
-                <p className="text-lg text-gray-600">
-                  This step will allow you to create a new NFT collection or manage existing ones.
-                </p>
-                <button
-                  onClick={resetProcess}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mt-6"
-                >
-                  Mint Another Batch
-                </button>
-              </div>
-            </div>
-          )}
         </main>
       </div>
     </div>
