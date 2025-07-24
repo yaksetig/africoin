@@ -2413,16 +2413,20 @@ const Index = () => {
     setIsConnected(true);
     setEthersProvider(provider);
     setEthersSigner(signer);
-    if (csvData.length > 0) {
-      setCurrentStep(3); // Only move to step 3 if there's data to mint
+    
+    if (csvData.length > 0 && currentStep === 2) { 
+      setCurrentStep(3); 
+    } else if (csvData.length === 0 && currentStep !== 1) {
+        // If wallet connects but no data is uploaded, ensure we are on step 1 (Upload File)
+        setCurrentStep(1);
     }
+    
     toast({
       title: "Wallet connected successfully",
       description: `Connected to ${address.slice(0, 6)}...${address.slice(-4)}`,
     });
   }, [csvData.length, toast]); // Dependencies for useCallback
 
-  // --- FIX: Wrap handleWalletDisconnect in useCallback ---
   const handleWalletDisconnect = useCallback(() => {
     setWalletAddress('');
     setIsConnected(false);
