@@ -1,20 +1,36 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, FileText, Coins, CheckCircle, Trash2, Download, Cloud, Rocket } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { WalletConnect } from "@/components/WalletConnect";
 import { FileUpload } from "@/components/FileUpload";
 import { ContractDeployer } from "@/components/ContractDeployer";
+import { WalletConnect } from "@/components/WalletConnect";
 import IPFSConfig from "@/components/IPFSConfig";
 import { useToast } from "@/hooks/use-toast";
 import { ethers } from 'ethers';
 import { uploadMetadataToIPFS, type CarbonCreditData } from '@/lib/ipfs';
 
-const Index = () => {
+interface IndexProps {
+  signer: ethers.Signer | null;
+  provider: ethers.BrowserProvider | null;
+  walletConnected: boolean;
+  walletAddress: string | null;
+  onWalletConnect: (
+    address: string,
+    provider: ethers.BrowserProvider,
+    signer: ethers.JsonRpcSigner
+  ) => void;
+  onWalletDisconnect: () => void;
+}
+
+const Index: React.FC<IndexProps> = ({
+  signer,
+  provider,
+  walletConnected,
+  walletAddress,
+  onWalletConnect,
+  onWalletDisconnect,
+}) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string>('');
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [mintingInProgress, setMintingInProgress] = useState(false);
@@ -64,21 +80,22 @@ const Index = () => {
     }
   ];
 
-  const handleWalletConnect = useCallback((address: string, walletProvider: ethers.BrowserProvider, walletSigner: ethers.Signer) => {
-    setProvider(walletProvider);
-    setSigner(walletSigner);
-    setWalletAddress(address);
-    setWalletConnected(true);
-    setCurrentStep(2);
-  }, []);
+  const handleWalletConnect = useCallback(
+    (
+      address: string,
+      walletProvider: ethers.BrowserProvider,
+      walletSigner: ethers.JsonRpcSigner
+    ) => {
+      onWalletConnect(address, walletProvider, walletSigner);
+      setCurrentStep(2);
+    },
+    [onWalletConnect]
+  );
 
   const handleWalletDisconnect = useCallback(() => {
-    setProvider(null);
-    setSigner(null);
-    setWalletAddress('');
-    setWalletConnected(false);
+    onWalletDisconnect();
     setCurrentStep(1);
-  }, []);
+  }, [onWalletDisconnect]);
 
   const handleFileUpload = useCallback((file: File) => {
     setUploadedFile(file);
