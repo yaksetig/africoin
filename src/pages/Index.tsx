@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { WalletConnect } from "@/components/WalletConnect";
 import { FileUpload } from "@/components/FileUpload";
 import { ContractDeployer } from "@/components/ContractDeployer";
-import { IPFSConfig } from "@/components/IPFSConfig";
+import IPFSConfig from "@/components/IPFSConfig";
 import { useToast } from "@/hooks/use-toast";
 import { ethers } from 'ethers';
 import { uploadMetadataToIPFS, type CarbonCreditData } from '@/lib/ipfs';
@@ -21,8 +21,7 @@ const Index = () => {
   const [mintedTokens, setMintedTokens] = useState<number>(0);
   const [contractAddress, setContractAddress] = useState<string>('');
   const [contractABI, setContractABI] = useState<any[]>([]);
-  const [pinataApiKey, setPinataApiKey] = useState<string>('');
-  const [pinataSecretKey, setPinataSecretKey] = useState<string>('');
+  const [ipfsConfigured, setIpfsConfigured] = useState(false);
   const [ipfsUploading, setIpfsUploading] = useState(false);
   const [uploadedURIs, setUploadedURIs] = useState<string[]>([]);
   const { toast } = useToast();
@@ -45,9 +44,9 @@ const Index = () => {
     {
       number: 3,
       title: "Configure IPFS",
-      description: "Setup Pinata API keys for metadata storage",
+      description: "Set up IPFS storage for metadata",
       icon: <Cloud className="w-6 h-6" />,
-      completed: pinataApiKey !== '' && pinataSecretKey !== ''
+      completed: ipfsConfigured
     },
     {
       number: 4,
@@ -168,11 +167,7 @@ const Index = () => {
         ...item
       }));
 
-      const results = await uploadMetadataToIPFS(
-        carbonCreditDataList,
-        pinataApiKey || undefined,
-        pinataSecretKey || undefined
-      );
+      const results = await uploadMetadataToIPFS(carbonCreditDataList);
 
       const successfulUploads = results.filter(r => r.success);
       const uris = successfulUploads.map(r => r.tokenURI!);
@@ -379,11 +374,11 @@ const Index = () => {
               </div>
 
               <IPFSConfig 
-                onConfigSaved={(apiKey, secretKey) => {
-                  setPinataApiKey(apiKey);
-                  setPinataSecretKey(secretKey);
+                onConfigured={() => {
+                  setIpfsConfigured(true);
                   setCurrentStep(4);
                 }}
+                isConfigured={ipfsConfigured}
               />
             </div>
           )}
