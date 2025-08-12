@@ -386,7 +386,7 @@ const Index: React.FC<IndexProps> = ({
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-center mb-4">IPFS Configuration</h2>
                 <p className="text-center text-muted-foreground">
-                  Configure Pinata API keys to upload metadata to IPFS.
+                  Configure <a href="https://pinata.cloud/" className="underline" target="_blank" rel="noopener noreferrer">Piñata API Keys</a> to upload metadata to IPFS.
                 </p>
               </div>
 
