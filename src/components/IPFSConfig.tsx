@@ -33,7 +33,7 @@ const IPFSConfig = ({ onConfigured, isConfigured }: IPFSConfigProps) => {
       <CardHeader>
         <CardTitle>Configure IPFS Storage</CardTitle>
         <CardDescription>
-          IPFS metadata uploads are handled by your Railway backend service.
+          IPFS metadata uploads are handled by your backend service.
           <br />
           Make sure your backend is deployed with Pinata API keys configured.
         </CardDescription>
