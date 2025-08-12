@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, FileText, Coins, CheckCircle, Trash2, Download, Cloud, Rocket } from 'lucide-react';
+import DataMap from '@/components/DataMap';
 import * as XLSX from 'xlsx';
 import { FileUpload } from "@/components/FileUpload";
 import { ContractDeployer } from "@/components/ContractDeployer";
@@ -32,11 +33,12 @@ const Index: React.FC<IndexProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [csvData, setCsvData] = useState<any[]>([]);
+  const [csvData, setCsvData] = useState<Record<string, string>[]>([]);
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [mintingInProgress, setMintingInProgress] = useState(false);
   const [mintedTokens, setMintedTokens] = useState<number>(0);
   const [contractAddress, setContractAddress] = useState<string>('');
-  const [contractABI, setContractABI] = useState<any[]>([]);
+  const [contractABI, setContractABI] = useState<ethers.InterfaceAbi>([]);
   const [ipfsConfigured, setIpfsConfigured] = useState(false);
   const [ipfsUploading, setIpfsUploading] = useState(false);
   const [uploadedURIs, setUploadedURIs] = useState<string[]>([]);
@@ -103,7 +105,7 @@ const Index: React.FC<IndexProps> = ({
     const reader = new FileReader();
     reader.onload = (e) => {
       const data = e.target?.result;
-      let jsonData: any[] = [];
+      let jsonData: Record<string, string>[] = [];
       
       if (file.name.endsWith('.csv')) {
         // Parse CSV
@@ -114,7 +116,7 @@ const Index: React.FC<IndexProps> = ({
         for (let i = 1; i < lines.length; i++) {
           if (lines[i].trim()) {
             const values = lines[i].split(',');
-            const row: any = {};
+            const row: Record<string, string> = {};
             headers.forEach((header, index) => {
               row[header] = values[index]?.trim() || '';
             });
@@ -126,10 +128,11 @@ const Index: React.FC<IndexProps> = ({
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        jsonData = XLSX.utils.sheet_to_json(worksheet);
+        jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
       }
       
       setCsvData(jsonData);
+      setSelectedRows([]);
       toast({
         title: "File Uploaded",
         description: `Successfully loaded ${jsonData.length} rows`,
@@ -142,6 +145,24 @@ const Index: React.FC<IndexProps> = ({
       reader.readAsArrayBuffer(file);
     }
   }, [toast]);
+
+  const toggleRowSelection = (index: number) => {
+    setSelectedRows(prev =>
+      prev.includes(index)
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
+
+  const deleteSelectedRows = () => {
+    setCsvData(prev => prev.filter((_, idx) => !selectedRows.includes(idx)));
+    setSelectedRows([]);
+  };
+
+  const deleteRow = (index: number) => {
+    setCsvData(prev => prev.filter((_, idx) => idx !== index));
+    setSelectedRows(prev => prev.filter(i => i !== index));
+  };
 
   const downloadSampleCSV = () => {
     const sampleData = [
@@ -431,6 +452,7 @@ const Index: React.FC<IndexProps> = ({
                         onClick={() => {
                           setUploadedFile(null);
                           setCsvData([]);
+                          setSelectedRows([]);
                         }}
                         className="inline-flex items-center px-3 py-1.5 text-xs bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/80"
                       >
@@ -446,34 +468,63 @@ const Index: React.FC<IndexProps> = ({
                         <table className="w-full text-sm">
                           <thead className="bg-muted border-b">
                             <tr>
+                              <th className="p-2"></th>
                               {Object.keys(csvData[0]).map((header, index) => (
                                 <th key={index} className="text-left p-2 font-medium">
                                   {header}
                                 </th>
                               ))}
+                              <th className="p-2"></th>
                             </tr>
                           </thead>
                           <tbody>
-                            {csvData.slice(0, 5).map((row, rowIndex) => (
+                            {csvData.map((row, rowIndex) => (
                               <tr key={rowIndex} className="border-b border-border/50">
+                                <td className="p-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedRows.includes(rowIndex)}
+                                    onChange={() => toggleRowSelection(rowIndex)}
+                                  />
+                                </td>
                                 {Object.values(row).map((cell, cellIndex) => (
                                   <td key={cellIndex} className="p-2">
                                     {String(cell)}
                                   </td>
                                 ))}
+                                <td className="p-2 text-right">
+                                  <button
+                                    onClick={() => deleteRow(rowIndex)}
+                                    className="text-destructive hover:underline text-xs"
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                      {csvData.length > 5 && (
-                        <div className="p-2 text-xs text-muted-foreground bg-muted border-t">
-                          Showing first 5 rows of {csvData.length} total rows
-                        </div>
-                      )}
                     </div>
                   )}
-                  
+
+                  {selectedRows.length > 0 && (
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        onClick={deleteSelectedRows}
+                        className="px-3 py-1 text-xs bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/80"
+                      >
+                        Delete Selected
+                      </button>
+                    </div>
+                  )}
+
+                  {csvData.length > 0 && (
+                    <div className="mt-6">
+                      <DataMap data={csvData} />
+                    </div>
+                  )}
+
                   <div className="mt-6 flex justify-center">
                     <button
                       onClick={uploadToIPFS}
