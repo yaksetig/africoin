@@ -1,4 +1,23 @@
 const solc = require('solc');
+const fs = require('fs');
+const path = require('path');
+
+// Function to find imports
+function findImports(relativePath) {
+  // Handle OpenZeppelin imports
+  if (relativePath.startsWith('@openzeppelin/')) {
+    const contractPath = path.join(__dirname, '../../node_modules', relativePath);
+    try {
+      const source = fs.readFileSync(contractPath, 'utf8');
+      return { contents: source };
+    } catch (error) {
+      console.error(`Could not find import: ${relativePath}`);
+      return { error: 'File not found' };
+    }
+  }
+  
+  return { error: 'File not found' };
+}
 
 async function compileContract(sourceCode) {
   try {
@@ -15,11 +34,14 @@ async function compileContract(sourceCode) {
             '*': ['abi', 'evm.bytecode'],
           },
         },
-        remappings: ['@openzeppelin/=node_modules/@openzeppelin/'],
+        optimizer: {
+          enabled: true,
+          runs: 200,
+        },
       },
     };
 
-    const output = JSON.parse(solc.compile(JSON.stringify(input)));
+    const output = JSON.parse(solc.compile(JSON.stringify(input), { import: findImports }));
 
     if (output.errors) {
       const errors = output.errors.filter((error) => error.severity === 'error');
