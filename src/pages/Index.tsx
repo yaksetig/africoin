@@ -68,7 +68,7 @@ const Index: React.FC<IndexProps> = ({
     },
     {
       number: 4,
-      title: "Upload CSV/Excel",
+      title: "Upload file",
       description: "Upload your CSV or Excel file containing asset data",
       icon: <FileText className="w-6 h-6" />,
       completed: uploadedFile !== null
@@ -303,7 +303,15 @@ const Index: React.FC<IndexProps> = ({
       let successCount = 0;
 
       // Check if contract has ownerMint function (for free minting)
-      const hasOwnerMint = Array.isArray(contractABI) && (contractABI as any[]).some((item: any) => (typeof item === 'object' && item?.name === 'ownerMint') || (typeof item === 'string' && item.includes('ownerMint')));
+      let hasOwnerMint = false;
+      if (Array.isArray(contractABI)) {
+        for (const item of contractABI as any[]) {
+          if ((typeof item === 'object' && (item as any)?.name === 'ownerMint') || (typeof item === 'string' && item.includes('ownerMint'))) {
+            hasOwnerMint = true;
+            break;
+          }
+        }
+      }
 
       for (let i = 0; i < uploadedURIs.length; i++) {
         const tokenURI = uploadedURIs[i];
