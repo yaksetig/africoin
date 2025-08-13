@@ -276,48 +276,67 @@ const Index: React.FC<IndexProps> = ({
     }
 
     setMintingInProgress(true);
-    
+
     try {
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
-      
+
       let successCount = 0;
-      
+
+      // Check if contract has ownerMint function (for free minting)
+      const hasOwnerMint = contractABI.some(item => (item as any).name === 'ownerMint');
+
       for (let i = 0; i < uploadedURIs.length; i++) {
         const tokenURI = uploadedURIs[i];
-        
+
         try {
-          // Mint the NFT with the IPFS metadata URI
-          const tx = await contract.mint(walletAddress, tokenURI);
+          let tx;
+
+          if (hasOwnerMint) {
+            // Try owner mint first (free)
+            try {
+              tx = await (contract as any).ownerMint(walletAddress, tokenURI);
+            } catch (ownerError) {
+              // Fall back to paid mint
+              console.log('Owner mint failed, trying paid mint');
+              tx = await (contract as any).mint(walletAddress, tokenURI, { value: ethers.parseEther("0.01") });
+            }
+          } else {
+            // Use regular mint function
+            tx = await contract.mint(walletAddress, tokenURI);
+          }
+
           await tx.wait();
-          
+
           successCount++;
           setMintedTokens(successCount);
-          
+
           toast({
             title: "NFT Minted",
             description: `Successfully minted NFT ${i + 1} of ${uploadedURIs.length}`,
           });
-          
+
         } catch (error) {
           console.error(`Error minting NFT ${i + 1}:`, error);
           toast({
             title: "Minting Error",
-            description: `Failed to mint NFT ${i + 1}`,
+            description: `Failed to mint NFT ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
             variant: "destructive",
           });
         }
       }
-      
-      toast({
-        title: "Minting Complete",
-        description: `Successfully minted ${successCount} out of ${uploadedURIs.length} NFTs`,
-      });
-      
+
+      if (successCount > 0) {
+        toast({
+          title: "Minting Complete",
+          description: `Successfully minted ${successCount} out of ${uploadedURIs.length} NFTs`,
+        });
+      }
+
     } catch (error) {
       console.error('Minting error:', error);
       toast({
         title: "Error",
-        description: "An error occurred during the minting process",
+        description: error instanceof Error ? error.message : "An error occurred during the minting process",
         variant: "destructive",
       });
     } finally {
