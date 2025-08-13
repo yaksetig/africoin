@@ -447,13 +447,13 @@ const Index: React.FC<IndexProps> = ({
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">
-            Carbon Credit NFT Tokenization Platform
+            Africoin Tokenisation Platform
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Transform your carbon credits into verifiable NFTs on the blockchain. 
-            Upload your data, deploy contracts, and mint unique tokens representing your environmental assets.
+            Transform real-world assets into verifiable NFTs on the blockchain.
+            Upload your data, deploy contracts, and mint unique tokens representing your assets.
           </p>
-          
+
         </header>
 
         {/* Progress Steps */}
