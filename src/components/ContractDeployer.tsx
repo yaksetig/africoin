@@ -4,8 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useContract } from '@/hooks/useContract';
-import { Loader2, CheckCircle, Code, Rocket } from 'lucide-react';
+import { useWalletAuth } from '@/hooks/useWalletAuth';
+import { useSavedContracts } from '@/hooks/useSavedContracts';
+import { Loader2, CheckCircle, Code, Rocket, Save, Trash2, Download } from 'lucide-react';
 import { ethers } from 'ethers';
 
 interface ContractDeployerProps {
@@ -20,8 +23,19 @@ export const ContractDeployer: React.FC<ContractDeployerProps> = ({
   const [sourceCode, setSourceCode] = useState('');
   const [existingAddress, setExistingAddress] = useState('');
   const [useExisting, setUseExisting] = useState(false);
+  const [useSaved, setUseSaved] = useState(false);
+  const [selectedSavedContract, setSelectedSavedContract] = useState('');
+  const [contractLabel, setContractLabel] = useState('');
+  const [showSaveForm, setShowSaveForm] = useState(false);
   
   const { contractState, compileAndDeploy, setContractInfo } = useContract();
+  const { session, isAuthenticated, isAuthenticating, authenticate } = useWalletAuth();
+  const { contracts, isLoading, saveNewContract, deleteExistingContract } = useSavedContracts(isAuthenticated);
+
+  const handleAuthenticateWallet = async () => {
+    if (!signer) return;
+    await authenticate(signer);
+  };
 
   const handleDeploy = async () => {
     if (!signer) return;
@@ -29,7 +43,26 @@ export const ContractDeployer: React.FC<ContractDeployerProps> = ({
     const result = await compileAndDeploy(sourceCode, signer);
     if (result.success) {
       onContractDeployed(result.contractAddress!, result.abi!);
+      
+      // Show save form after successful deployment if authenticated
+      if (isAuthenticated) {
+        setShowSaveForm(true);
+      }
     }
+  };
+
+  const handleSaveCurrentContract = async () => {
+    if (!contractState.contractAddress || !contractState.abi || !isAuthenticated) return;
+    
+    await saveNewContract(
+      contractState.contractAddress,
+      contractState.abi,
+      contractLabel || undefined,
+      'ethereum' // Default network
+    );
+    
+    setShowSaveForm(false);
+    setContractLabel('');
   };
 
   const handleUseExisting = () => {
@@ -58,6 +91,21 @@ export const ContractDeployer: React.FC<ContractDeployerProps> = ({
     onContractDeployed(existingAddress, defaultABI);
   };
 
+  const handleUseSavedContract = () => {
+    const selected = contracts.find(c => c.id === selectedSavedContract);
+    if (!selected) return;
+    
+    setContractInfo(selected.contract_address, selected.abi);
+    onContractDeployed(selected.contract_address, selected.abi);
+  };
+
+  const handleDeleteSavedContract = async (contractId: string) => {
+    await deleteExistingContract(contractId);
+    if (selectedSavedContract === contractId) {
+      setSelectedSavedContract('');
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -75,27 +123,85 @@ export const ContractDeployer: React.FC<ContractDeployerProps> = ({
       </CardHeader>
       <CardContent className="space-y-6">
         {contractState.contractAddress ? (
-          <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-semibold text-sm text-muted-foreground mb-2">Contract Ready</h4>
-            <p className="text-sm font-mono break-all">
-              {contractState.contractAddress}
-            </p>
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold text-sm text-muted-foreground mb-2">Contract Ready</h4>
+              <p className="text-sm font-mono break-all">
+                {contractState.contractAddress}
+              </p>
+            </div>
+            
+            {showSaveForm && isAuthenticated && (
+              <div className="p-4 border rounded-lg space-y-3">
+                <h4 className="font-semibold text-sm">Save Contract</h4>
+                <div>
+                  <Label htmlFor="contract-label">Label (optional)</Label>
+                  <Input
+                    id="contract-label"
+                    placeholder="e.g., My Carbon NFT Contract"
+                    value={contractLabel}
+                    onChange={(e) => setContractLabel(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveCurrentContract} size="sm">
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Contract
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowSaveForm(false)} 
+                    size="sm"
+                  >
+                    Skip
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <>
+            {/* Wallet Authentication Section */}
+            {!isAuthenticated && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg space-y-3">
+                <h4 className="font-semibold text-sm">Wallet Authentication</h4>
+                <p className="text-sm text-muted-foreground">
+                  Authenticate your wallet to save and manage contracts across sessions.
+                </p>
+                <Button 
+                  onClick={handleAuthenticateWallet}
+                  disabled={!signer || isAuthenticating}
+                  size="sm"
+                  variant="outline"
+                >
+                  {isAuthenticating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Authenticating...
+                    </>
+                  ) : (
+                    'Authenticate Wallet'
+                  )}
+                </Button>
+              </div>
+            )}
+
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <input
                   type="radio"
                   id="deploy-new"
-                  checked={!useExisting}
-                  onChange={() => setUseExisting(false)}
+                  checked={!useExisting && !useSaved}
+                  onChange={() => {
+                    setUseExisting(false);
+                    setUseSaved(false);
+                  }}
                   className="h-4 w-4"
                 />
                 <Label htmlFor="deploy-new">Deploy New Contract</Label>
               </div>
               
-              {!useExisting && (
+              {!useExisting && !useSaved && (
                 <div className="space-y-4 pl-6">
                   <div>
                     <Label htmlFor="source-code">Solidity Source Code</Label>
@@ -134,13 +240,90 @@ export const ContractDeployer: React.FC<ContractDeployerProps> = ({
               )}
             </div>
 
+            {/* Saved Contracts Section */}
+            {isAuthenticated && contracts.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="use-saved"
+                    checked={useSaved}
+                    onChange={() => {
+                      setUseSaved(true);
+                      setUseExisting(false);
+                    }}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="use-saved">Use Saved Contract</Label>
+                </div>
+                
+                {useSaved && (
+                  <div className="space-y-4 pl-6">
+                    <div>
+                      <Label htmlFor="saved-contract">Saved Contracts</Label>
+                      <div className="flex gap-2">
+                        <Select 
+                          value={selectedSavedContract} 
+                          onValueChange={setSelectedSavedContract}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Select a saved contract" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {contracts.map((contract) => (
+                              <SelectItem key={contract.id} value={contract.id}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>
+                                    {contract.label || `Contract ${contract.contract_address.slice(0, 8)}...`}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleDeleteSavedContract(contract.id);
+                                    }}
+                                    className="ml-2 h-6 w-6 p-0"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {selectedSavedContract && (
+                        <div className="mt-2 p-2 bg-muted rounded text-xs">
+                          {contracts.find(c => c.id === selectedSavedContract)?.contract_address}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Button 
+                      onClick={handleUseSavedContract}
+                      disabled={!selectedSavedContract}
+                      className="w-full"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Use This Contract
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <input
                   type="radio"
                   id="use-existing"
                   checked={useExisting}
-                  onChange={() => setUseExisting(true)}
+                  onChange={() => {
+                    setUseExisting(true);
+                    setUseSaved(false);
+                  }}
                   className="h-4 w-4"
                 />
                 <Label htmlFor="use-existing">Use Existing Contract</Label>

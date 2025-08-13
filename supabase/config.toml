@@ -1,1 +1,7 @@
 project_id = "awuadhofwkegouccnlen"
+
+[functions.wallet-auth]
+verify_jwt = false
+
+[functions.contracts]
+verify_jwt = false
