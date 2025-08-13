@@ -69,16 +69,18 @@ serve(async (req) => {
       }
 
       const nonce = crypto.randomUUID();
-      
-      // Store nonce in database
-      const { error } = await supabase
+
+      // Store nonce in database and retrieve stored timestamp
+      const { data: nonceRecord, error } = await supabase
         .from('wallet_nonces')
         .insert({
           nonce,
           wallet_address: walletAddress.toLowerCase(),
-        });
+        })
+        .select('created_at')
+        .single();
 
-      if (error) {
+      if (error || !nonceRecord) {
         console.error('Failed to store nonce:', error);
         return new Response(JSON.stringify({ error: 'Failed to generate nonce' }), {
           status: 500,
@@ -86,9 +88,9 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         nonce,
-        message: `Sign this message to authenticate with your wallet:\n\nNonce: ${nonce}\nTimestamp: ${new Date().toISOString()}`
+        message: `Sign this message to authenticate with your wallet:\n\nNonce: ${nonce}\nTimestamp: ${nonceRecord.created_at}`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
