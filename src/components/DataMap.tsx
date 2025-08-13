@@ -12,6 +12,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl,
 });
 
+// Work around TS prop typing mismatches from react-leaflet types
+const AnyMapContainer = MapContainer as any;
+const AnyTileLayer = TileLayer as any;
+
 interface MapDataItem {
   [key: string]: unknown;
 }
@@ -55,13 +59,13 @@ const DataMap: React.FC<DataMapProps> = ({ data }) => {
   const center = markers.length > 0 ? [markers[0].lat, markers[0].lng] : [0, 0];
 
   return (
-    <MapContainer
+    <AnyMapContainer
       center={center as [number, number]}
       zoom={2}
       style={{ height: '400px', width: '100%' }}
       scrollWheelZoom={false}
     >
-      <TileLayer
+      <AnyTileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
@@ -70,7 +74,7 @@ const DataMap: React.FC<DataMapProps> = ({ data }) => {
           <Popup>{m.label}</Popup>
         </Marker>
       ))}
-    </MapContainer>
+    </AnyMapContainer>
   );
 };
 

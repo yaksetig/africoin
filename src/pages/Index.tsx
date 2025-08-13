@@ -48,7 +48,7 @@ const Index: React.FC<IndexProps> = ({
     {
       number: 1,
       title: "Connect Wallet",
-      description: "Connect your MetaMask wallet to begin the tokenization process",
+      description: "Connect your wallet to begin tokenization process",
       icon: <Upload className="w-6 h-6" />,
       completed: walletConnected
     },
@@ -303,7 +303,7 @@ const Index: React.FC<IndexProps> = ({
       let successCount = 0;
 
       // Check if contract has ownerMint function (for free minting)
-      const hasOwnerMint = contractABI.some(item => (item as any).name === 'ownerMint');
+      const hasOwnerMint = Array.isArray(contractABI) && (contractABI as any[]).some((item: any) => (typeof item === 'object' && item?.name === 'ownerMint') || (typeof item === 'string' && item.includes('ownerMint')));
 
       for (let i = 0; i < uploadedURIs.length; i++) {
         const tokenURI = uploadedURIs[i];
