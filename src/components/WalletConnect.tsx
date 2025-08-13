@@ -5,12 +5,16 @@ import { ethers } from 'ethers';
 
 declare global {
   interface Window {
-    ethereum?: any;
+    ethereum?: ethers.Eip1193Provider;
   }
 }
 
-// Track manual disconnects across component instances
+// Track manual disconnects across component instances and page reloads
 let manuallyDisconnected = false;
+if (typeof window !== "undefined") {
+  manuallyDisconnected =
+    localStorage.getItem("walletDisconnected") === "true";
+}
 
 interface WalletConnectProps {
   onConnect: (address: string, provider: ethers.BrowserProvider, signer: ethers.JsonRpcSigner) => void;
@@ -52,29 +56,42 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         manuallyDisconnected = false;
+        localStorage.removeItem("walletDisconnected");
         onConnect(accounts[0], provider, signer);
       } else {
         throw new Error('No accounts returned from MetaMask.');
       }
-    } catch (error: any) {
-      let errorMessage = "Failed to connect to MetaMask. Please try again.";
-      if (error.code === 4001) {
-        errorMessage = "Connection rejected by user.";
-      } else if (error.code === -32002) {
-        errorMessage = "Connection request already pending. Please check MetaMask.";
+      } catch (error: unknown) {
+        let errorMessage = "Failed to connect to MetaMask. Please try again.";
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          (error as { code: number }).code === 4001
+        ) {
+          errorMessage = "Connection rejected by user.";
+        } else if (
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          (error as { code: number }).code === -32002
+        ) {
+          errorMessage =
+            "Connection request already pending. Please check MetaMask.";
+        }
+        toast({
+          variant: "destructive",
+          title: "Connection Failed",
+          description: errorMessage,
+        });
+      } finally {
+        setIsConnecting(false);
       }
-      toast({
-        variant: "destructive",
-        title: "Connection Failed",
-        description: errorMessage,
-      });
-    } finally {
-      setIsConnecting(false);
-    }
-  };
+    };
 
   const disconnectWallet = () => {
     manuallyDisconnected = true;
+    localStorage.setItem("walletDisconnected", "true");
     onDisconnect();
   };
 
@@ -104,11 +121,11 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
       // A full dApp would often re-initialize ethers objects here or prompt for chain switch.
     };
 
-    const handleConnect = (connectInfo: any) => {
+    const handleConnect = (_connectInfo: unknown) => {
       // This fires when MetaMask connects to a chain, not necessarily when accounts are exposed to dApp
     };
 
-    const handleDisconnect = (error: any) => {
+    const handleDisconnect = () => {
       onDisconnect(); // MetaMask explicitly disconnected
     };
 
@@ -120,19 +137,20 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
 
 
     // Initial check for already connected accounts
-    window.ethereum.request({ method: 'eth_accounts' })
-      .then(async (accounts: string[]) => {
-        if (accounts.length > 0 && !manuallyDisconnected) {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const signer = await provider.getSigner();
-          onConnect(accounts[0], provider, signer);
-        } else {
-          onDisconnect();
-        }
-      })
-      .catch((error: any) => {
-        onDisconnect(); // Assume disconnected if error
-      });
+      window.ethereum
+        .request({ method: 'eth_accounts' })
+        .then(async (accounts: string[]) => {
+          if (accounts.length > 0 && !manuallyDisconnected) {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            onConnect(accounts[0], provider, signer);
+          } else {
+            onDisconnect();
+          }
+        })
+        .catch(() => {
+          onDisconnect(); // Assume disconnected if error
+        });
 
     // Cleanup function
     return () => {
