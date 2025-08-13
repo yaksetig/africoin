@@ -193,39 +193,59 @@ const Index: React.FC<IndexProps> = ({
     }
 
     setIpfsUploading(true);
-    
+
     try {
-      // Convert CSV data to CarbonCreditData format
-      const carbonCreditDataList: CarbonCreditData[] = csvData.map(item => ({
-        serialNumber: item[Object.keys(item)[0]] || '',
-        carbonQuantity: item['CarbonQuantity'] || item['Carbon Quantity'] || '',
-        projectID: item['ProjectID'] || item['Project ID'] || '',
-        vintageYear: item['VintageYear'] || item['Vintage Year'] || '',
-        geographicCoordinates: item['GeographicCoordinates'] || item['Geographic Coordinates'] || '',
-        ...item
-      }));
+      // Convert CSV data to CarbonCreditData format with validation
+      const carbonCreditDataList: CarbonCreditData[] = csvData.map((item, index) => {
+        const serialNumber = item[Object.keys(item)[0]] || `ITEM-${index + 1}`;
+
+        return {
+          serialNumber,
+          projectName: item['ProjectName'] || item['Project Name'] || item['ProjectID'] || item['Project ID'] || '',
+          country: item['Country'] || item['GeographicCoordinates'] || item['Geographic Coordinates'] || '',
+          methodology: item['Methodology'] || '',
+          vintage: item['VintageYear'] || item['Vintage Year'] || item['Vintage'] || '',
+          volume: item['CarbonQuantity'] || item['Carbon Quantity'] || item['Volume'] || '1 tCO2e',
+          ...item
+        };
+      });
 
       const results = await uploadMetadataToIPFS(carbonCreditDataList);
 
       const successfulUploads = results.filter(r => r.success);
+      const failedUploads = results.filter(r => !r.success);
+
+      if (failedUploads.length > 0) {
+        console.warn('Some uploads failed:', failedUploads);
+      }
+
       const uris = successfulUploads.map(r => r.tokenURI!);
-      
       setUploadedURIs(uris);
-      
+
+      if (successfulUploads.length === 0) {
+        toast({
+          title: "Upload Failed",
+          description: "All metadata uploads failed. Please check your data and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "IPFS Upload Complete",
         description: `Successfully uploaded ${successfulUploads.length} out of ${results.length} metadata files`,
+        variant: failedUploads.length > 0 ? "destructive" : "default",
       });
 
       if (successfulUploads.length > 0) {
-        setCurrentStep(5); // Move to minting step
+        setCurrentStep(5);
       }
-      
+
     } catch (error) {
       console.error('IPFS upload error:', error);
       toast({
-        title: "Error",
-        description: "An error occurred during IPFS upload",
+        title: "Upload Error",
+        description: error instanceof Error ? error.message : "An error occurred during IPFS upload",
         variant: "destructive",
       });
     } finally {
