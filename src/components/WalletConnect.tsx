@@ -9,11 +9,15 @@ declare global {
   }
 }
 
+// Track manual disconnects across component instances
+let manuallyDisconnected = false;
+
 interface WalletConnectProps {
   onConnect: (address: string, provider: ethers.BrowserProvider, signer: ethers.JsonRpcSigner) => void;
   onDisconnect: () => void;
   connected: boolean;
   currentAddress: string | null;
+  className?: string;
 }
 
 export const WalletConnect: React.FC<WalletConnectProps> = ({
@@ -21,6 +25,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
   onDisconnect,
   connected,
   currentAddress,
+  className,
 }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
@@ -43,10 +48,10 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
         method: 'eth_requestAccounts'
       });
 
-
       if (accounts.length > 0) {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
+        manuallyDisconnected = false;
         onConnect(accounts[0], provider, signer);
       } else {
         throw new Error('No accounts returned from MetaMask.');
@@ -69,6 +74,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
   };
 
   const disconnectWallet = () => {
+    manuallyDisconnected = true;
     onDisconnect();
   };
 
@@ -82,9 +88,11 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
 
     const handleAccountsChanged = async (accounts: string[]) => {
       if (accounts.length > 0) {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        onConnect(accounts[0], provider, signer);
+        if (!manuallyDisconnected) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          onConnect(accounts[0], provider, signer);
+        }
       } else {
         onDisconnect();
       }
@@ -114,7 +122,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
     // Initial check for already connected accounts
     window.ethereum.request({ method: 'eth_accounts' })
       .then(async (accounts: string[]) => {
-        if (accounts.length > 0) {
+        if (accounts.length > 0 && !manuallyDisconnected) {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
           onConnect(accounts[0], provider, signer);
@@ -141,7 +149,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
   }, [onConnect, onDisconnect]); // Dependencies: ensure callbacks are always up-to-date
 
   return (
-    <div className="fixed top-4 right-4 flex items-center gap-4">
+    <div className={`flex items-center gap-4 ${className ?? ''}`}>
       {connected ? (
         <div className="flex items-center gap-2 bg-accent/80 backdrop-blur-sm px-4 py-2 rounded-lg">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
