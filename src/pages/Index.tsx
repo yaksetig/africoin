@@ -811,16 +811,6 @@ const Index: React.FC<IndexProps> = ({
             </div>
           )}
         </main>
-        {!walletConnected && (
-          <div className="mt-12 flex justify-center">
-            <WalletConnect
-              onConnect={handleWalletConnect}
-              onDisconnect={handleWalletDisconnect}
-              connected={walletConnected}
-              currentAddress={walletAddress}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
