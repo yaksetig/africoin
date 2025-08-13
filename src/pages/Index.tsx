@@ -9,6 +9,7 @@ import IPFSConfig from "@/components/IPFSConfig";
 import { useToast } from "@/hooks/use-toast";
 import { ethers } from 'ethers';
 import { uploadMetadataToIPFS, type CarbonCreditData } from '@/lib/ipfs';
+import { parseEthersError } from '@/lib/tx-error';
 
 interface IndexProps {
   signer: ethers.Signer | null;
@@ -313,6 +314,37 @@ const Index: React.FC<IndexProps> = ({
         }
       }
 
+      // Preflight checks: owner permission and simulation
+      try {
+        if ((contract as any).owner) {
+          const ownerAddr = await (contract as any).owner();
+          const signerAddr = await signer.getAddress();
+          if (ownerAddr && signerAddr && ownerAddr.toLowerCase() !== signerAddr.toLowerCase()) {
+            toast({
+              title: "Permission error",
+              description: `Minting is restricted to the contract owner (${ownerAddr}). Connect with the owner wallet or redeploy a contract you own.`,
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+      } catch {}
+
+      try {
+        if (uploadedURIs.length > 0) {
+          const firstUri = uploadedURIs[0];
+          if (hasOwnerMint && (contract as any).ownerMint?.staticCall) {
+            await (contract as any).ownerMint.staticCall(walletAddress, firstUri);
+          } else if ((contract as any).mint?.staticCall) {
+            await (contract as any).mint.staticCall(walletAddress, firstUri);
+          }
+        }
+      } catch (simErr) {
+        const parsed = parseEthersError(simErr);
+        toast({ title: parsed.title, description: parsed.description, variant: "destructive" });
+        return;
+      }
+
       for (let i = 0; i < uploadedURIs.length; i++) {
         const tokenURI = uploadedURIs[i];
 
@@ -345,9 +377,10 @@ const Index: React.FC<IndexProps> = ({
 
         } catch (error) {
           console.error(`Error minting NFT ${i + 1}:`, error);
+          const parsed = parseEthersError(error);
           toast({
-            title: "Minting Error",
-            description: `Failed to mint NFT ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            title: "Minting failed",
+            description: `NFT ${i + 1}: ${parsed.description}`,
             variant: "destructive",
           });
         }
@@ -362,9 +395,10 @@ const Index: React.FC<IndexProps> = ({
 
     } catch (error) {
       console.error('Minting error:', error);
+      const parsed = parseEthersError(error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred during the minting process",
+        title: parsed.title,
+        description: parsed.description,
         variant: "destructive",
       });
     } finally {
