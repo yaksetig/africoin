@@ -141,7 +141,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({
   }, [onConnect, onDisconnect]); // Dependencies: ensure callbacks are always up-to-date
 
   return (
-    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
+    <div className="fixed top-4 right-4 flex items-center gap-4">
       {connected ? (
         <div className="flex items-center gap-2 bg-accent/80 backdrop-blur-sm px-4 py-2 rounded-lg">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
