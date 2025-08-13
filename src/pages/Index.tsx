@@ -1,5 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Upload, FileText, Coins, CheckCircle, Trash2, Download, Cloud, Rocket } from 'lucide-react';
+import {
+  Upload,
+  FileText,
+  Coins,
+  CheckCircle,
+  Trash2,
+  Download,
+  Cloud,
+  Rocket,
+  AlertCircle,
+  Lock
+} from 'lucide-react';
 import DataMap from '@/components/DataMap';
 import * as XLSX from 'xlsx';
 import { FileUpload } from "@/components/FileUpload";
@@ -95,6 +106,9 @@ const Index: React.FC<IndexProps> = ({
       completed: mintedTokens > 0
     }
   ];
+
+  const isStepLocked = (stepNumber: number) =>
+    steps.slice(0, stepNumber - 1).some((step) => !step.completed);
 
   const handleWalletConnect = useCallback(
     (
@@ -447,40 +461,51 @@ const Index: React.FC<IndexProps> = ({
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.number} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <div className={`
+                <button
+                  onClick={() => setCurrentStep(step.number)}
+                  className="flex flex-col items-center focus:outline-none cursor-pointer"
+                >
+                  <div
+                    className={`
                     w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all
-                    ${step.completed 
-                      ? 'bg-primary border-primary text-primary-foreground' 
+                    ${step.completed
+                      ? 'bg-primary border-primary text-primary-foreground'
                       : currentStep === step.number
                         ? 'border-primary text-primary bg-background'
                         : 'border-muted-foreground text-muted-foreground bg-background'
                     }
-                  `}>
+                  `}
+                  >
                     {step.completed ? (
                       <CheckCircle className="w-6 h-6" />
+                    ) : currentStep > step.number ? (
+                      <AlertCircle className="w-6 h-6" />
                     ) : (
                       step.icon
                     )}
                   </div>
                   <div className="mt-2 text-center">
-                    <div className={`text-sm font-medium ${
-                      step.completed || currentStep === step.number 
-                        ? 'text-foreground' 
-                        : 'text-muted-foreground'
-                    }`}>
+                    <div
+                      className={`text-sm font-medium ${
+                        step.completed || currentStep === step.number
+                          ? 'text-foreground'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
                       {step.title}
                     </div>
                     <div className="text-xs text-muted-foreground max-w-24">
                       {step.description}
                     </div>
                   </div>
-                </div>
+                </button>
                 {index < steps.length - 1 && (
-                  <div className={`
+                  <div
+                    className={`
                     h-0.5 w-16 mx-4 transition-all
                     ${step.completed ? 'bg-primary' : 'bg-border'}
-                  `} />
+                  `}
+                  />
                 )}
               </div>
             ))}
@@ -531,157 +556,187 @@ const Index: React.FC<IndexProps> = ({
 
           {/* Step 2: Setup Contract */}
           {currentStep === 2 && (
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-center mb-4">Smart Contract Setup</h2>
-                <p className="text-center text-muted-foreground">
-                  Deploy a new contract or connect to an existing one for minting NFTs.
-                </p>
-              </div>
+            <div className="relative max-w-2xl mx-auto">
+              <div className={isStepLocked(2) ? "pointer-events-none opacity-50" : ""}>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-center mb-4">Smart Contract Setup</h2>
+                  <p className="text-center text-muted-foreground">
+                    Deploy a new contract or connect to an existing one for minting NFTs.
+                  </p>
+                </div>
 
-              <ContractDeployer 
-                signer={signer}
-                onContractDeployed={(address, abi) => {
-                  setContractAddress(address);
-                  setContractABI(abi);
-                  setCurrentStep(3);
-                }}
-              />
+                <ContractDeployer
+                  signer={signer}
+                  onContractDeployed={(address, abi) => {
+                    setContractAddress(address);
+                    setContractABI(abi);
+                    setCurrentStep(3);
+                  }}
+                />
+              </div>
+              {isStepLocked(2) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                  <div className="flex items-center text-muted-foreground">
+                    <Lock className="w-5 h-5 mr-2" />
+                    <span>Complete previous steps to continue</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* Step 3: Configure IPFS */}
           {currentStep === 3 && (
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-center mb-4">IPFS Configuration</h2>
-                <p className="text-center text-muted-foreground">
-                  Configure <a href="https://pinata.cloud/" className="underline" target="_blank" rel="noopener noreferrer">Piñata API Keys</a> to upload metadata to IPFS.
-                </p>
-              </div>
+            <div className="relative max-w-2xl mx-auto">
+              <div className={isStepLocked(3) ? "pointer-events-none opacity-50" : ""}>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-center mb-4">IPFS Configuration</h2>
+                  <p className="text-center text-muted-foreground">
+                    Configure <a href="https://pinata.cloud/" className="underline" target="_blank" rel="noopener noreferrer">Piñata API Keys</a> to upload metadata to IPFS.
+                  </p>
+                </div>
 
-              <IPFSConfig 
-                onConfigured={() => {
-                  setIpfsConfigured(true);
-                  setCurrentStep(4);
-                }}
-                isConfigured={ipfsConfigured}
-              />
+                <IPFSConfig
+                  onConfigured={() => {
+                    setIpfsConfigured(true);
+                    setCurrentStep(4);
+                  }}
+                  isConfigured={ipfsConfigured}
+                />
+              </div>
+              {isStepLocked(3) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                  <div className="flex items-center text-muted-foreground">
+                    <Lock className="w-5 h-5 mr-2" />
+                    <span>Complete previous steps to continue</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* Step 4: Upload CSV/Excel */}
           {currentStep === 4 && (
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-center mb-4">Upload Your Data File</h2>
-                <p className="text-center text-muted-foreground">
-                  Upload a CSV or Excel file containing your asset data. The first column should contain unique identifiers.
-                </p>
-              </div>
+            <div className="relative max-w-2xl mx-auto">
+              <div className={isStepLocked(4) ? "pointer-events-none opacity-50" : ""}>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-center mb-4">Upload Your Data File</h2>
+                  <p className="text-center text-muted-foreground">
+                    Upload a CSV or Excel file containing your asset data. The first column should contain unique identifiers.
+                  </p>
+                </div>
 
-              <FileUpload onFileUpload={handleFileUpload} />
-              
-              {uploadedFile && (
-                <div className="mt-8 p-6 bg-muted rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4">File Preview</h3>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-muted-foreground">
-                      File: {uploadedFile.name} ({csvData.length} rows)
-                    </span>
-                    <div className="flex gap-2">
+                <FileUpload onFileUpload={handleFileUpload} />
+
+                {uploadedFile && (
+                  <div className="mt-8 p-6 bg-muted rounded-lg">
+                    <h3 className="text-lg font-semibold mb-4">File Preview</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm text-muted-foreground">
+                        File: {uploadedFile.name} ({csvData.length} rows)
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={downloadSampleCSV}
+                          className="inline-flex items-center px-3 py-1.5 text-xs bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80"
+                        >
+                          <Download className="w-3 h-3 mr-1" />
+                          Download Sample
+                        </button>
+                        <button
+                          onClick={() => {
+                            setUploadedFile(null);
+                            setCsvData([]);
+                            setSelectedRows([]);
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 text-xs bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/80"
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+
+                    {csvData.length > 0 && (
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto max-h-64">
+                          <table className="w-full text-sm">
+                            <thead className="bg-muted border-b">
+                              <tr>
+                                <th className="p-2"></th>
+                                {Object.keys(csvData[0]).map((header, index) => (
+                                  <th key={index} className="text-left p-2 font-medium">
+                                    {header}
+                                  </th>
+                                ))}
+                                <th className="p-2"></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {csvData.map((row, rowIndex) => (
+                                <tr key={rowIndex} className="border-b border-border/50">
+                                  <td className="p-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedRows.includes(rowIndex)}
+                                      onChange={() => toggleRowSelection(rowIndex)}
+                                    />
+                                  </td>
+                                  {Object.values(row).map((cell, cellIndex) => (
+                                    <td key={cellIndex} className="p-2">
+                                      {String(cell)}
+                                    </td>
+                                  ))}
+                                  <td className="p-2 text-right">
+                                    <button
+                                      onClick={() => deleteRow(rowIndex)}
+                                      className="text-destructive hover:underline text-xs"
+                                    >
+                                      Delete
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedRows.length > 0 && (
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          onClick={deleteSelectedRows}
+                          className="px-3 py-1 text-xs bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/80"
+                        >
+                          Delete Selected
+                        </button>
+                      </div>
+                    )}
+
+                    {csvData.length > 0 && (
+                      <div className="mt-6">
+                        <DataMap data={csvData} />
+                      </div>
+                    )}
+
+                    <div className="mt-6 flex justify-center">
                       <button
-                        onClick={downloadSampleCSV}
-                        className="inline-flex items-center px-3 py-1.5 text-xs bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80"
+                        onClick={uploadToIPFS}
+                        disabled={csvData.length === 0 || ipfsUploading}
+                        className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Download className="w-3 h-3 mr-1" />
-                        Download Sample
-                      </button>
-                      <button
-                        onClick={() => {
-                          setUploadedFile(null);
-                          setCsvData([]);
-                          setSelectedRows([]);
-                        }}
-                        className="inline-flex items-center px-3 py-1.5 text-xs bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/80"
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        Remove
+                        {ipfsUploading ? 'Uploading to IPFS...' : 'Upload Metadata to IPFS'}
                       </button>
                     </div>
                   </div>
-                  
-                  {csvData.length > 0 && (
-                    <div className="border rounded-lg overflow-hidden">
-                      <div className="overflow-x-auto max-h-64">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted border-b">
-                            <tr>
-                              <th className="p-2"></th>
-                              {Object.keys(csvData[0]).map((header, index) => (
-                                <th key={index} className="text-left p-2 font-medium">
-                                  {header}
-                                </th>
-                              ))}
-                              <th className="p-2"></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {csvData.map((row, rowIndex) => (
-                              <tr key={rowIndex} className="border-b border-border/50">
-                                <td className="p-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedRows.includes(rowIndex)}
-                                    onChange={() => toggleRowSelection(rowIndex)}
-                                  />
-                                </td>
-                                {Object.values(row).map((cell, cellIndex) => (
-                                  <td key={cellIndex} className="p-2">
-                                    {String(cell)}
-                                  </td>
-                                ))}
-                                <td className="p-2 text-right">
-                                  <button
-                                    onClick={() => deleteRow(rowIndex)}
-                                    className="text-destructive hover:underline text-xs"
-                                  >
-                                    Delete
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedRows.length > 0 && (
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        onClick={deleteSelectedRows}
-                        className="px-3 py-1 text-xs bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/80"
-                      >
-                        Delete Selected
-                      </button>
-                    </div>
-                  )}
-
-                  {csvData.length > 0 && (
-                    <div className="mt-6">
-                      <DataMap data={csvData} />
-                    </div>
-                  )}
-
-                  <div className="mt-6 flex justify-center">
-                    <button
-                      onClick={uploadToIPFS}
-                      disabled={csvData.length === 0 || ipfsUploading}
-                      className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {ipfsUploading ? 'Uploading to IPFS...' : 'Upload Metadata to IPFS'}
-                    </button>
+                )}
+              </div>
+              {isStepLocked(4) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                  <div className="flex items-center text-muted-foreground">
+                    <Lock className="w-5 h-5 mr-2" />
+                    <span>Complete previous steps to continue</span>
                   </div>
                 </div>
               )}
@@ -690,59 +745,69 @@ const Index: React.FC<IndexProps> = ({
 
           {/* Step 5: Mint NFTs */}
           {currentStep === 5 && (
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-center mb-4">Mint NFTs</h2>
-                <p className="text-center text-muted-foreground">
-                  Ready to mint NFTs using the metadata uploaded to IPFS.
-                </p>
-              </div>
-
-              <div className="p-6 bg-muted rounded-lg">
-                <div className="text-center mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Minting Summary</h3>
-                  <p className="text-muted-foreground">
-                    {uploadedURIs.length} metadata files ready for minting
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Contract: {contractAddress}
+            <div className="relative max-w-2xl mx-auto">
+              <div className={isStepLocked(5) ? "pointer-events-none opacity-50" : ""}>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-center mb-4">Mint NFTs</h2>
+                  <p className="text-center text-muted-foreground">
+                    Ready to mint NFTs using the metadata uploaded to IPFS.
                   </p>
                 </div>
 
-                <div className="mb-6">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span>Progress</span>
-                    <span>{mintedTokens} / {uploadedURIs.length}</span>
+                <div className="p-6 bg-muted rounded-lg">
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-semibold mb-2">Minting Summary</h3>
+                    <p className="text-muted-foreground">
+                      {uploadedURIs.length} metadata files ready for minting
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Contract: {contractAddress}
+                    </p>
                   </div>
-                  <div className="w-full bg-border rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${uploadedURIs.length > 0 ? (mintedTokens / uploadedURIs.length) * 100 : 0}%` }}
-                    ></div>
-                  </div>
-                </div>
 
-                <div className="text-center">
-                  <button
-                    onClick={mintNFTs}
-                    disabled={mintingInProgress || uploadedURIs.length === 0}
-                    className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {mintingInProgress ? 'Minting in Progress...' : 'Start Minting NFTs'}
-                  </button>
-                </div>
-
-                {mintedTokens > 0 && (
-                  <div className="mt-6 p-4 bg-primary/10 rounded-lg">
-                    <div className="flex items-center justify-center text-primary">
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      <span className="font-semibold">
-                        Successfully minted {mintedTokens} NFT{mintedTokens !== 1 ? 's' : ''}!
-                      </span>
+                  <div className="mb-6">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Progress</span>
+                      <span>{mintedTokens} / {uploadedURIs.length}</span>
+                    </div>
+                    <div className="w-full bg-border rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadedURIs.length > 0 ? (mintedTokens / uploadedURIs.length) * 100 : 0}%` }}
+                      ></div>
                     </div>
                   </div>
-                )}
+
+                  <div className="text-center">
+                    <button
+                      onClick={mintNFTs}
+                      disabled={mintingInProgress || uploadedURIs.length === 0}
+                      className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {mintingInProgress ? 'Minting in Progress...' : 'Start Minting NFTs'}
+                    </button>
+                  </div>
+
+                  {mintedTokens > 0 && (
+                    <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+                      <div className="flex items-center justify-center text-primary">
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        <span className="font-semibold">
+                          Successfully minted {mintedTokens} NFT{mintedTokens !== 1 ? 's' : ''}!
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+              {isStepLocked(5) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                  <div className="flex items-center text-muted-foreground">
+                    <Lock className="w-5 h-5 mr-2" />
+                    <span>Complete previous steps to continue</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </main>
