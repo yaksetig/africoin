@@ -542,7 +542,7 @@ const Index: React.FC<IndexProps> = ({
                 <p className="text-center text-muted-foreground mb-4">
                   Connect your MetaMask wallet to start the tokenization process
                 </p>
-                <div className="text-center">
+                <div className="flex justify-center">
                   <WalletConnect
                     onConnect={handleWalletConnect}
                     onDisconnect={handleWalletDisconnect}
