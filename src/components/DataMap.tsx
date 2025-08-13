@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
@@ -13,7 +13,9 @@ L.Icon.Default.mergeOptions({
 });
 
 // Work around TS prop typing mismatches from react-leaflet types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AnyMapContainer = MapContainer as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AnyTileLayer = TileLayer as any;
 
 interface MapDataItem {
@@ -23,6 +25,16 @@ interface MapDataItem {
 interface DataMapProps {
   data: MapDataItem[];
 }
+
+const FitBounds: React.FC<{ bounds: L.LatLngBounds | null }> = ({ bounds }) => {
+  const map = useMap();
+  React.useEffect(() => {
+    if (bounds) {
+      map.fitBounds(bounds);
+    }
+  }, [map, bounds]);
+  return null;
+};
 
 const DataMap: React.FC<DataMapProps> = ({ data }) => {
   const parseCoordinates = (input: unknown): { lat: number; lng: number } | null => {
@@ -56,17 +68,22 @@ const DataMap: React.FC<DataMapProps> = ({ data }) => {
     })
     .filter((m): m is { lat: number; lng: number; label: string } => !!m);
 
+  const bounds =
+    markers.length > 0
+      ? L.latLngBounds(markers.map((m) => [m.lat, m.lng]))
+      : null;
   const center = markers.length > 0 ? [markers[0].lat, markers[0].lng] : [0, 0];
 
   return (
-    // @ts-ignore react-leaflet typing mismatch
+    // @ts-expect-error react-leaflet typing mismatch
     <AnyMapContainer
       center={center as [number, number]}
       zoom={2}
       style={{ height: '400px', width: '100%' }}
       scrollWheelZoom={false}
     >
-      // @ts-ignore react-leaflet typing mismatch
+      <FitBounds bounds={bounds} />
+      // @ts-expect-error react-leaflet typing mismatch
       <AnyTileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
