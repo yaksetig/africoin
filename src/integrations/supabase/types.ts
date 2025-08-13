@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contracts: {
+        Row: {
+          abi: Json
+          contract_address: string
+          created_at: string
+          id: string
+          label: string | null
+          network: string | null
+          owner_address: string
+          updated_at: string
+        }
+        Insert: {
+          abi: Json
+          contract_address: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          network?: string | null
+          owner_address: string
+          updated_at?: string
+        }
+        Update: {
+          abi?: Json
+          contract_address?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          network?: string | null
+          owner_address?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wallet_nonces: {
+        Row: {
+          created_at: string
+          expires_at: string
+          nonce: string
+          wallet_address: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          nonce: string
+          wallet_address: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          nonce?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
