@@ -69,7 +69,7 @@ const Index: React.FC<IndexProps> = ({
     {
       number: 4,
       title: "Upload file",
-      description: "Upload your CSV or Excel file containing asset data",
+      description: "Upload your file containing asset data",
       icon: <FileText className="w-6 h-6" />,
       completed: uploadedFile !== null
     },
