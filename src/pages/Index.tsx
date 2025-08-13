@@ -424,6 +424,18 @@ const Index: React.FC<IndexProps> = ({
             Transform your carbon credits into verifiable NFTs on the blockchain. 
             Upload your data, deploy contracts, and mint unique tokens representing your environmental assets.
           </p>
+          
+          {/* Additional Connect Wallet Button */}
+          {!walletConnected && (
+            <div className="mt-8">
+              <WalletConnect
+                onConnect={handleWalletConnect}
+                onDisconnect={handleWalletDisconnect}
+                connected={walletConnected}
+                currentAddress={walletAddress}
+              />
+            </div>
+          )}
         </header>
 
         {/* Progress Steps */}
