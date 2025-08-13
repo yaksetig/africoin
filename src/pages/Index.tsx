@@ -106,19 +106,35 @@ const Index: React.FC<IndexProps> = ({
     reader.onload = (e) => {
       const data = e.target?.result;
       let jsonData: Record<string, string>[] = [];
-      
+
+      const normalizeCoordinate = (coord: unknown): string => {
+        if (coord == null) return '';
+        const coordStr = String(coord);
+        const matches = coordStr.match(/-?\d+(?:\.\d+)?/g);
+        if (!matches || matches.length < 2) return '';
+        let lat = parseFloat(matches[0]);
+        let lng = parseFloat(matches[1]);
+        if (/s/i.test(coordStr)) lat = -Math.abs(lat);
+        if (/w/i.test(coordStr)) lng = -Math.abs(lng);
+        return `${lat},${lng}`;
+      };
+
       if (file.name.endsWith('.csv')) {
         // Parse CSV
         const text = data as string;
         const lines = text.split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
-        
+
         for (let i = 1; i < lines.length; i++) {
           if (lines[i].trim()) {
             const values = lines[i].split(',');
             const row: Record<string, string> = {};
             headers.forEach((header, index) => {
-              row[header] = values[index]?.trim() || '';
+              let value = values[index]?.trim() || '';
+              if (header.toLowerCase().includes('geographic')) {
+                value = normalizeCoordinate(value);
+              }
+              row[header] = value;
             });
             jsonData.push(row);
           }
@@ -129,6 +145,13 @@ const Index: React.FC<IndexProps> = ({
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
+        jsonData = jsonData.map(row => {
+          const key = Object.keys(row).find(k => k.toLowerCase().includes('geographic'));
+          if (key) {
+            row[key] = normalizeCoordinate(row[key]);
+          }
+          return row;
+        });
       }
       
       setCsvData(jsonData);

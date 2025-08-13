@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
 });
 
 interface MapDataItem {
-  [key: string]: string;
+  [key: string]: unknown;
 }
 
 interface DataMapProps {
@@ -21,17 +21,34 @@ interface DataMapProps {
 }
 
 const DataMap: React.FC<DataMapProps> = ({ data }) => {
+  const parseCoordinates = (input: unknown): { lat: number; lng: number } | null => {
+    if (input == null) return null;
+    const str = String(input);
+    const matches = str.match(/-?\d+(?:\.\d+)?/g);
+    if (!matches || matches.length < 2) return null;
+    let lat = parseFloat(matches[0]);
+    let lng = parseFloat(matches[1]);
+    if (/s/i.test(str)) lat = -Math.abs(lat);
+    if (/w/i.test(str)) lng = -Math.abs(lng);
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return { lat, lng };
+  };
+
   const markers = data
     .map((item) => {
-      const coord =
+      const coord: unknown =
         item['GeographicCoordinates'] || item['Geographic Coordinates'];
-      if (!coord) return null;
-      const [latStr, lngStr] = coord.split(',').map((s: string) => s.trim());
-      const lat = parseFloat(latStr);
-      const lng = parseFloat(lngStr);
-      if (isNaN(lat) || isNaN(lng)) return null;
+      let parsed = parseCoordinates(coord);
+      if (!parsed) {
+        const latField = item['Latitude'] || item['Lat'] || item['latitude'];
+        const lngField = item['Longitude'] || item['Lng'] || item['longitude'];
+        if (latField !== undefined && lngField !== undefined) {
+          parsed = parseCoordinates(`${latField},${lngField}`);
+        }
+      }
+      if (!parsed) return null;
       const label = item[Object.keys(item)[0]] || '';
-      return { lat, lng, label };
+      return { ...parsed, label };
     })
     .filter((m): m is { lat: number; lng: number; label: string } => !!m);
 
