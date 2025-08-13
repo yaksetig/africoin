@@ -17,8 +17,18 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
     if (!file) {
       toast({
         variant: "destructive",
-        title: "No CSV file selected",
-        description: "Please select a CSV file to upload to AfriCoin.",
+        title: "No file selected",
+        description: "Please select a CSV or Excel file to upload.",
+      });
+      return;
+    }
+
+    // Check file size (limit to 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "File Too Large",
+        description: "Please upload a file smaller than 10MB.",
       });
       return;
     }
@@ -31,7 +41,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
       toast({
         variant: "destructive",
         title: "Invalid File Type",
-        description: "Please upload a CSV file (.csv) or Excel file (.xlsx, .xls) for AfriCoin tokenization.",
+        description: "Please upload a CSV file (.csv) or Excel file (.xlsx, .xls).",
       });
       return;
     }
@@ -40,7 +50,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload }) => {
 
     toast({
       title: isCsv ? "CSV File Selected" : "Excel File Selected",
-      description: `"${file.name}" is ready for processing in AfriCoin.${isCsv ? ' (CSV format - perfect!)' : ' (Will be converted from Excel)'}`,
+      description: `"${file.name}" is ready for processing.`,
     });
 
   }, [onFileUpload, toast]);
