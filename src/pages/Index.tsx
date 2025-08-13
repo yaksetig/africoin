@@ -491,17 +491,18 @@ const Index: React.FC<IndexProps> = ({
             <div className="max-w-md mx-auto">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-center mb-4">Connect Your Wallet</h2>
-                <p className="text-center text-muted-foreground">
+                <p className="text-center text-muted-foreground mb-4">
                   Connect your MetaMask wallet to start the tokenization process
                 </p>
+                <div className="text-center">
+                  <WalletConnect
+                    onConnect={handleWalletConnect}
+                    onDisconnect={handleWalletDisconnect}
+                    connected={walletConnected}
+                    currentAddress={walletAddress}
+                  />
+                </div>
               </div>
-              
-              <WalletConnect
-                onConnect={handleWalletConnect}
-                onDisconnect={handleWalletDisconnect}
-                connected={walletConnected}
-                currentAddress={walletAddress}
-              />
             </div>
           )}
 
