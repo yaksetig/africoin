@@ -45,12 +45,18 @@ const Index: React.FC<IndexProps> = ({
   const [uploadedURIs, setUploadedURIs] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Auto-advance to step 2 if wallet is already connected
+  // Auto-advance to step 2 only on initial wallet connection, not when navigating back
   useEffect(() => {
     if (walletConnected && currentStep === 1) {
-      setCurrentStep(2);
+      // Only auto-advance if we're not coming from a disconnect action
+      const timeoutId = setTimeout(() => {
+        if (walletConnected && currentStep === 1) {
+          setCurrentStep(2);
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
     }
-  }, [walletConnected, currentStep]);
+  }, [walletConnected]);
 
   const steps = [
     {
@@ -104,7 +110,16 @@ const Index: React.FC<IndexProps> = ({
 
   const handleWalletDisconnect = useCallback(() => {
     onWalletDisconnect();
+    // Reset all states when disconnecting
     setCurrentStep(1);
+    setContractAddress('');
+    setContractABI([]);
+    setIpfsConfigured(false);
+    setUploadedFile(null);
+    setCsvData([]);
+    setSelectedRows([]);
+    setUploadedURIs([]);
+    setMintedTokens(0);
   }, [onWalletDisconnect]);
 
   const handleFileUpload = useCallback((file: File) => {
