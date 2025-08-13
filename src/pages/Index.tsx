@@ -419,11 +419,32 @@ const Index: React.FC<IndexProps> = ({
                 )}
               </div>
             ))}
-          </div>
         </div>
+      </div>
 
-        <main>
-          {/* Step 1: Connect Wallet */}
+      {/* Step Navigation Controls */}
+      {currentStep > 1 && (
+        <div className="max-w-4xl mx-auto mb-8 flex justify-between">
+          <button
+            onClick={() => setCurrentStep(currentStep - 1)}
+            className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80"
+          >
+            ← Previous Step
+          </button>
+
+          {currentStep < 5 && contractAddress && ipfsConfigured && uploadedFile && (
+            <button
+              onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+            >
+              Next Step →
+            </button>
+          )}
+        </div>
+      )}
+
+      <main>
+        {/* Step 1: Connect Wallet */}
           {currentStep === 1 && (
             <div className="max-w-md mx-auto">
               <div className="mb-8">
