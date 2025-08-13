@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, FileText, Coins, CheckCircle, Trash2, Download, Cloud, Rocket } from 'lucide-react';
 import DataMap from '@/components/DataMap';
 import * as XLSX from 'xlsx';
@@ -44,6 +44,13 @@ const Index: React.FC<IndexProps> = ({
   const [ipfsUploading, setIpfsUploading] = useState(false);
   const [uploadedURIs, setUploadedURIs] = useState<string[]>([]);
   const { toast } = useToast();
+
+  // Auto-advance to step 2 if wallet is already connected
+  useEffect(() => {
+    if (walletConnected && currentStep === 1) {
+      setCurrentStep(2);
+    }
+  }, [walletConnected, currentStep]);
 
   const steps = [
     {
