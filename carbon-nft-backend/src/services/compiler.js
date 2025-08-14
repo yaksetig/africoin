@@ -20,57 +20,46 @@ function findImports(relativePath) {
 }
 
 async function compileContract(sourceCode) {
-  try {
-    const input = {
-      language: 'Solidity',
-      sources: {
-        'Tokenize.sol': {
-          content: sourceCode,
+  const input = {
+    language: 'Solidity',
+    sources: {
+      'Tokenize.sol': {
+        content: sourceCode,
+      },
+    },
+    settings: {
+      outputSelection: {
+        '*': {
+          '*': ['abi', 'evm.bytecode'],
         },
       },
-      settings: {
-        outputSelection: {
-          '*': {
-            '*': ['abi', 'evm.bytecode'],
-          },
-        },
-        optimizer: {
-          enabled: true,
-          runs: 200,
-        },
+      optimizer: {
+        enabled: true,
+        runs: 200,
       },
-    };
+    },
+  };
 
-    const output = JSON.parse(solc.compile(JSON.stringify(input), { import: findImports }));
+  const output = JSON.parse(solc.compile(JSON.stringify(input), { import: findImports }));
 
-    if (output.errors) {
-      const errors = output.errors.filter((error) => error.severity === 'error');
-      if (errors.length > 0) {
-        return {
-          abi: [],
-          bytecode: '',
-          success: false,
-          errors: errors.map((e) => e.formattedMessage),
-        };
-      }
+  if (output.errors) {
+    const errors = output.errors.filter((error) => error.severity === 'error');
+    if (errors.length > 0) {
+      throw new Error(errors.map((e) => e.formattedMessage).join('\n'));
     }
-
-    const contract = output.contracts['Tokenize.sol']['Tokenize'];
-    
-    return {
-      abi: contract.abi,
-      bytecode: contract.evm.bytecode.object,
-      success: true,
-      errors: [],
-    };
-  } catch (error) {
-    return {
-      abi: [],
-      bytecode: '',
-      success: false,
-      errors: [error.message || 'Unknown compilation error'],
-    };
   }
+
+  const [, contractsInFile] = Object.entries(output.contracts || {})[0] || [];
+  const [, contract] = contractsInFile ? Object.entries(contractsInFile)[0] : [];
+
+  if (!contract) {
+    throw new Error('No contract output found');
+  }
+
+  return {
+    abi: contract.abi,
+    bytecode: contract.evm.bytecode.object,
+  };
 }
 
 module.exports = {
