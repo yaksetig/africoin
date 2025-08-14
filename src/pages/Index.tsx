@@ -339,15 +339,29 @@ const Index: React.FC<IndexProps> = ({
 
       let successCount = 0;
 
-      // Check if contract has ownerMint function (for free minting)
+      // Check if contract has minting functions
       let hasOwnerMint = false;
+      let hasMint = false;
       if (Array.isArray(contractABI)) {
         for (const item of contractABI as any[]) {
-          if ((typeof item === 'object' && (item as any)?.name === 'ownerMint') || (typeof item === 'string' && item.includes('ownerMint'))) {
+          const name = typeof item === 'object' ? (item as any)?.name : undefined;
+          const sig = typeof item === 'string' ? item : '';
+          if (name === 'ownerMint' || sig.includes('ownerMint')) {
             hasOwnerMint = true;
-            break;
+          }
+          if (name === 'mint' || sig.includes('mint(')) {
+            hasMint = true;
           }
         }
+      }
+
+      if (!hasOwnerMint && !hasMint) {
+        toast({
+          title: "Error",
+          description: "Selected contract does not expose a mint function",
+          variant: "destructive",
+        });
+        return;
       }
 
       // Preflight checks: owner permission and simulation
@@ -371,7 +385,7 @@ const Index: React.FC<IndexProps> = ({
           const firstUri = uploadedURIs[0];
           if (hasOwnerMint && (contract as any).ownerMint?.staticCall) {
             await (contract as any).ownerMint.staticCall(walletAddress, firstUri);
-          } else if ((contract as any).mint?.staticCall) {
+          } else if (hasMint && (contract as any).mint?.staticCall) {
             await (contract as any).mint.staticCall(walletAddress, firstUri);
           }
         }
@@ -392,13 +406,19 @@ const Index: React.FC<IndexProps> = ({
             try {
               tx = await (contract as any).ownerMint(walletAddress, tokenURI);
             } catch (ownerError) {
-              // Fall back to paid mint
-              console.log('Owner mint failed, trying paid mint');
-              tx = await (contract as any).mint(walletAddress, tokenURI, { value: ethers.parseEther("0.01") });
+              // Fall back to paid mint if available
+              if (hasMint) {
+                console.log('Owner mint failed, trying paid mint');
+                tx = await (contract as any).mint(walletAddress, tokenURI, { value: ethers.parseEther("0.01") });
+              } else {
+                throw ownerError;
+              }
             }
-          } else {
+          } else if (hasMint) {
             // Use regular mint function
-            tx = await contract.mint(walletAddress, tokenURI);
+            tx = await (contract as any).mint(walletAddress, tokenURI);
+          } else {
+            throw new Error('No mint function available');
           }
 
           await tx.wait();
