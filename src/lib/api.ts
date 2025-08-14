@@ -3,8 +3,6 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://africoin.up.ra
 export interface CompilationResult {
   abi: any[];
   bytecode: string;
-  success: boolean;
-  errors: string[];
 }
 
 export interface IPFSUploadResult {
@@ -35,17 +33,13 @@ export async function compileContract(sourceCode: string): Promise<CompilationRe
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
     return await response.json();
   } catch (error) {
-    return {
-      abi: [],
-      bytecode: '',
-      success: false,
-      errors: [error instanceof Error ? error.message : 'Network error'],
-    };
+    throw new Error(error instanceof Error ? error.message : 'Network error');
   }
 }
 
