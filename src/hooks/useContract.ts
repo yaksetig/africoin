@@ -34,17 +34,13 @@ export function useContract() {
         description: "Compiling smart contract...",
       });
 
-      const compilationResult = await compileContract(sourceCode);
-      
-      if (!compilationResult.success) {
-        throw new Error(`Compilation failed: ${compilationResult.errors.join(', ')}`);
-      }
+      const { abi, bytecode } = await compileContract(sourceCode);
 
-      setContractState(prev => ({ 
-        ...prev, 
-        isCompiling: false, 
-        abi: compilationResult.abi,
-        isDeploying: true 
+      setContractState(prev => ({
+        ...prev,
+        isCompiling: false,
+        abi,
+        isDeploying: true
       }));
 
       toast({
@@ -78,7 +74,7 @@ export function useContract() {
       return {
         success: true,
         contractAddress: deploymentResult.contractAddress!,
-        abi: compilationResult.abi,
+        abi,
       };
     } catch (error) {
       setContractState(prev => ({
