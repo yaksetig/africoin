@@ -10,13 +10,14 @@ export interface DeploymentResult {
 export async function deployContract(
   abi: any[],
   bytecode: string,
-  signer: ethers.Signer
+  signer: ethers.Signer,
+  constructorArgs: any[] = []
 ): Promise<DeploymentResult> {
   try {
     const factory = new ethers.ContractFactory(abi, bytecode, signer);
-    
+
     // Deploy the contract
-    const contract = await factory.deploy();
+    const contract = await factory.deploy(...constructorArgs);
     
     // Wait for the deployment transaction to be mined
     await contract.waitForDeployment();

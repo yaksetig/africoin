@@ -21,6 +21,11 @@ export const ContractDeployer: React.FC<ContractDeployerProps> = ({
   onContractDeployed,
 }) => {
   const [sourceCode, setSourceCode] = useState('');
+  const [name, setName] = useState('');
+  const [symbol, setSymbol] = useState('');
+  const [baseTokenURI, setBaseTokenURI] = useState('');
+  const [maxSupply, setMaxSupply] = useState('');
+  const [mintPrice, setMintPrice] = useState('');
   const [existingAddress, setExistingAddress] = useState('');
   const [useExisting, setUseExisting] = useState(false);
   const [useSaved, setUseSaved] = useState(false);
@@ -39,8 +44,15 @@ export const ContractDeployer: React.FC<ContractDeployerProps> = ({
 
   const handleDeploy = async () => {
     if (!signer) return;
-    
-    const result = await compileAndDeploy(sourceCode, signer);
+    const constructorArgs = [
+      name,
+      symbol,
+      baseTokenURI,
+      maxSupply ? BigInt(maxSupply) : 0n,
+      mintPrice ? ethers.parseEther(mintPrice) : 0n,
+    ];
+
+    const result = await compileAndDeploy(sourceCode, signer, constructorArgs);
     if (result.success) {
       onContractDeployed(result.contractAddress!, result.abi!);
       
@@ -203,6 +215,55 @@ export const ContractDeployer: React.FC<ContractDeployerProps> = ({
               
               {!useExisting && !useSaved && (
                 <div className="space-y-4 pl-6">
+                  <div>
+                    <Label htmlFor="contract-name">Name</Label>
+                    <Input
+                      id="contract-name"
+                      placeholder="Token Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contract-symbol">Symbol</Label>
+                    <Input
+                      id="contract-symbol"
+                      placeholder="SYM"
+                      value={symbol}
+                      onChange={(e) => setSymbol(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="base-token-uri">Base Token URI</Label>
+                    <Input
+                      id="base-token-uri"
+                      placeholder="https://example.com/metadata/"
+                      value={baseTokenURI}
+                      onChange={(e) => setBaseTokenURI(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="max-supply">Max Supply</Label>
+                      <Input
+                        id="max-supply"
+                        type="number"
+                        placeholder="1000"
+                        value={maxSupply}
+                        onChange={(e) => setMaxSupply(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="mint-price">Mint Price (ETH)</Label>
+                      <Input
+                        id="mint-price"
+                        type="number"
+                        placeholder="0.01"
+                        value={mintPrice}
+                        onChange={(e) => setMintPrice(e.target.value)}
+                      />
+                    </div>
+                  </div>
                   <div>
                     <Label htmlFor="source-code">Solidity Source Code</Label>
                     <Textarea

@@ -23,7 +23,8 @@ export function useContract() {
 
   const compileAndDeploy = useCallback(async (
     sourceCode: string,
-    signer: ethers.Signer
+    signer: ethers.Signer,
+    constructorArgs: any[] = []
   ) => {
     try {
       // Compile contract
@@ -49,9 +50,10 @@ export function useContract() {
 
       // Deploy contract
       const deploymentResult = await deployContract(
-        abi,
-        bytecode,
-        signer
+        compilationResult.abi,
+        compilationResult.bytecode,
+        signer,
+        constructorArgs
       );
 
       if (!deploymentResult.success) {
