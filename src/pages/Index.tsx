@@ -19,7 +19,14 @@ import { WalletConnect } from "@/components/WalletConnect";
 import IPFSConfig from "@/components/IPFSConfig";
 import { useToast } from "@/hooks/use-toast";
 import { ethers } from 'ethers';
-import { uploadMetadataToIPFS, type CarbonCreditData } from '@/lib/ipfs';
+import {
+  uploadMetadataToIPFS,
+  type CarbonCreditData,
+  saveIPFSResults,
+  loadIPFSResults,
+  removeIPFSResult,
+  clearIPFSResults,
+} from '@/lib/ipfs';
 import { parseEthersError } from '@/lib/tx-error';
 
 interface IndexProps {
@@ -134,7 +141,19 @@ const Index: React.FC<IndexProps> = ({
     setSelectedRows([]);
     setUploadedURIs([]);
     setMintedTokens(0);
+    clearIPFSResults();
   }, [onWalletDisconnect]);
+
+  // Load any persisted IPFS uploads on mount
+  useEffect(() => {
+    const stored = loadIPFSResults();
+    if (stored.length > 0) {
+      const uris = stored
+        .map((r) => r.tokenURI)
+        .filter((u): u is string => typeof u === 'string');
+      setUploadedURIs(uris);
+    }
+  }, []);
 
   const handleFileUpload = useCallback((file: File) => {
     setUploadedFile(file);
@@ -281,6 +300,7 @@ const Index: React.FC<IndexProps> = ({
 
       const uris = successfulUploads.map(r => r.tokenURI!);
       setUploadedURIs(uris);
+      saveIPFSResults(successfulUploads);
 
       if (successfulUploads.length === 0) {
         toast({
@@ -430,6 +450,7 @@ const Index: React.FC<IndexProps> = ({
             title: "NFT Minted",
             description: `Successfully minted NFT ${i + 1} of ${uploadedURIs.length}`,
           });
+          removeIPFSResult(tokenURI);
 
         } catch (error) {
           console.error(`Error minting NFT ${i + 1}:`, error);
