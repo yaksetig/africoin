@@ -825,7 +825,7 @@ const Index: React.FC<IndexProps> = ({
                       disabled={mintingInProgress || uploadedURIs.length === 0}
                       className="px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {mintingInProgress ? 'Minting in Progress...' : 'Start Minting NFTs'}
+                      {mintingInProgress ? 'Minting in Progress...' : 'Mint NFTs'}
                     </button>
                   </div>
 
